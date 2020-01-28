@@ -5,6 +5,8 @@ from librosa.filters import mel as librosa_mel_fn
 from torch.nn.utils import weight_norm
 import numpy as np
 
+from . import config
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -86,9 +88,11 @@ class ResnetBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, input_size, ngf, n_residual_layers):
+    def __init__(self, input_size=config.INPUT_SIZE,
+                       ngf=config.NGF,
+                       n_residual_layers=config.N_RES_G,
+                       ratios=config.RATIOS):
         super().__init__()
-        ratios = [8, 8, 2, 2]
         self.hop_length = np.prod(ratios)
         mult = int(2 ** len(ratios))
 
@@ -180,7 +184,10 @@ class NLayerDiscriminator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, num_D, ndf, n_layers, downsampling_factor):
+    def __init__(self, num_D=config.NUM_D,
+                       ndf=config.NDF,
+                       n_layers=config.N_LAYER_D,
+                       downsampling_factor=config.DOWNSAMP_D):
         super().__init__()
         self.model = nn.ModuleDict()
         for i in range(num_D):
