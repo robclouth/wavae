@@ -2,3 +2,5 @@
 *.pt
 *.pth
 *.DS_Store
+*runs*
+*.mdb
