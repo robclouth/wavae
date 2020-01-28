@@ -123,8 +123,8 @@ for e in range(config.EPOCH):
             torch.save(states, backup_name)
         
         if step % config.EVAL == 0:
-            writer.add_audio("original", batch.squeeze(), step, config.SAMPRATE)
-            writer.add_audio("generated", y.squeeze(), step, config.SAMPRATE)
+            writer.add_audio("original", batch.reshape(-1), step, config.SAMPRATE)
+            writer.add_audio("generated", y.reshape(-1), step, config.SAMPRATE)
         
         step += 1
         
