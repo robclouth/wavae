@@ -1,4 +1,5 @@
 import librosa as li
+import resampy
 import lmdb
 from tqdm import tqdm
 from glob import glob
@@ -19,7 +20,9 @@ def preprocess(wavloc, samprate, outdb, n_signal):
         idx = 0
         for wav in wavs:
             wavs.set_description(path.basename(wav))
-            x = li.load(wav, samprate)[0]
+            x, sr = li.load(wav, None)
+            x = resampy.resample(x, sr, samprate)
+            
             N = len(x) // n_signal
             if N == 0:
                 continue
