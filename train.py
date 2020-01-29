@@ -22,14 +22,14 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 gen   = get_model()
 dis   = Discriminator()
 
-for model in [gen, dis]:
-    skipped = 0
-    for p in model.parameters():
-        try:
-            torch.nn.init.xavier_normal_(p)
-        except:
-            skipped += 1
-    print(f"Skipped {skipped} during the initialization of {model.__class__.__name__}")
+#for model in [gen, dis]:
+#    skipped = 0
+#    for p in model.parameters():
+#        try:
+#            torch.nn.init.xavier_normal_(p)
+#        except:
+#            skipped += 1
+#    print(f"Skipped {skipped} during the initialization of {model.__class__.__name__}")
 
 if config.CKPT is not None:
     ckptgen, ckptdis = torch.load(config.CKPT, map_location="cpu")

@@ -24,7 +24,7 @@ class MelEncoder(nn.Module):
         S = torch.stft(x, self.nfft, self.hop, 512)
         S = 2 * module(S) / 512
         S_mel = self.mel.matmul(S)[...,:x.shape[-1]//self.hop]
-        return S_mel
+        return torch.log10(torch.clamp(S_mel, min=1e-5))
 
 class Encoder(nn.Module):
     def __init__(self):
