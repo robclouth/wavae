@@ -9,7 +9,11 @@ import torch
 def preprocess(wavloc, samprate, outdb, n_signal):
     env = lmdb.open(outdb, map_size=10e9, lock=False)
     wavloc = wavloc if "." in wavloc else [path.join(wavloc, ext) for ext in ["*.wav", "*.aif"]]
-    wavs = sum(glob(wav) for wav in wavloc)
+    wavs = []
+    for wav in wavloc:
+        wavs.extend(glob(wav))
+
+    wavs = tqdm(wavs)
 
     with env.begin(write=True) as txn:
         idx = 0
@@ -19,7 +23,12 @@ def preprocess(wavloc, samprate, outdb, n_signal):
             N = len(x) // n_signal
             if N == 0:
                 continue
-            x = x[:-(len(x) % n_signal)].reshape([N, n_signal])
+            if len(x) % n_signal != 0:
+                x = x[:-(len(x) % n_signal)].reshape([N, n_signal])
+            else:
+                x = x.reshape([N, n_signal])
+            
+            
             for elm in x:
                 txn.put(f"{idx:08d}".encode("utf-8"), pickle.dumps(elm))
                 idx += 1
