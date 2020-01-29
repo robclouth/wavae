@@ -8,8 +8,8 @@ import torch
 
 def preprocess(wavloc, samprate, outdb, n_signal):
     env = lmdb.open(outdb, map_size=10e9, lock=False)
-    wavloc = wavloc if ".wav" in wavloc else path.join(wavloc, "*.wav")
-    wavs = tqdm(glob(wavloc))
+    wavloc = wavloc if "." in wavloc else [path.join(wavloc, ext) for ext in ["*.wav", "*.aif"]]
+    wavs = sum(glob(wav) for wav in wavloc)
 
     with env.begin(write=True) as txn:
         idx = 0
