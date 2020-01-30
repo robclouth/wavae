@@ -22,15 +22,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 gen   = get_model()
 dis   = Discriminator()
 
-#for model in [gen, dis]:
-#    skipped = 0
-#    for p in model.parameters():
-#        try:
-#            torch.nn.init.xavier_normal_(p)
-#        except:
-#            skipped += 1
-#    print(f"Skipped {skipped} during the initialization of {model.__class__.__name__}")
-
 if config.CKPT is not None:
     ckptgen, ckptdis = torch.load(config.CKPT, map_location="cpu")
     gen.load_state_dict(ckptgen)
@@ -41,8 +32,8 @@ dis   = dis.to(device)
 
 
 # PREPARE OPTIMIZERS
-opt_gen = torch.optim.Adam(gen.parameters(), lr=config.LR)
-opt_dis   = torch.optim.Adam(dis.parameters(), lr=config.LR)
+opt_gen = torch.optim.Adam(gen.parameters(), lr=config.LR, betas=[.5, .9])
+opt_dis   = torch.optim.Adam(dis.parameters(), lr=config.LR, betas=[.5, .9])
 
 ROOT = path.join("runs", config.NAME)
 writer = SummaryWriter(ROOT, flush_secs=20)
