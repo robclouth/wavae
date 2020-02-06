@@ -20,7 +20,10 @@ class melGAN(nn.Module):
     def __init__(self):
         super().__init__()
         self.encoder = MelEncoder()
-        self.decoder = Generator()
+        self.decoder = Generator(input_size=config.INPUT_SIZE,
+                                 ngf=config.NGF,
+                                 n_residual_layers=config.N_RES_G,
+                                 ratios=config.RATIOS)
 
     def forward(self, x):
         mel = self.encoder(x)
