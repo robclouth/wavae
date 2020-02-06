@@ -1,5 +1,8 @@
-from src import get_model, config
-config.parse_args()
+from src.vanilla_vae import TopVAE
+import torch
 
-model = get_model()
-print(model.__class__.__name__)
+x = torch.randn(1, 128, 512)
+
+model = TopVAE()
+print(model)
+print(model(x)[0].shape)
