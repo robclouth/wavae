@@ -79,9 +79,6 @@ if __name__ == "__main__":
     rec = decoder(input_z)
 
     # TRACING TIME
-    torch.jit.trace(wrapper, input_waveform,
-                    check_trace=False).save(path.join(ROOT, "full_trace.ts"))
-
     torch.jit.trace(encoder, input_waveform,
                     check_trace=False).save(path.join(ROOT,
                                                       "encoder_trace.ts"))
