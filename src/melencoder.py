@@ -26,4 +26,4 @@ class MelEncoder(nn.Module):
         S_mel = self.mel.matmul(S)
         if self.training:
             S_mel = S_mel[..., :x.shape[-1] // self.hop]
-        return torch.log10(torch.clamp(S_mel, min=1e-5))
+        return (torch.log10(torch.clamp(S_mel, min=1e-5)) + 5) / 5
