@@ -13,7 +13,7 @@ Train the spectral model
 python train.py -c vanilla --wav-loc YOUR_DATA_FOLDER --name ENTER_A_COOL_NAME
 ```
 
-Remember to delete the `preprocessed` folder between each training, as the models don't use the same preprocessing pipeline.
+Remember to delete the `preprocessed` folder between each training, as the models don't use the same preprocessing pipeline. (You can also outsmart us all and use the `--lmdb-loc` flag with a different path for each model)
 
 Train the waveform model
 ```bash
