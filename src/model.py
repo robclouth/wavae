@@ -4,10 +4,10 @@ from . import Generator, Discriminator, MelEncoder, TopVAE, config
 
 
 class Vanilla(nn.Module):
-    def __init__(self):
+    def __init__(self, hop, ratios, input_size, channels, kernel):
         super().__init__()
-        self.melencoder = MelEncoder()
-        self.topvae = TopVAE()
+        self.melencoder = MelEncoder(hop=hop, input_size=input_size)
+        self.topvae = TopVAE(channels=channels, kernel=kernel, ratios=ratios)
 
     def forward(self, x):
         with torch.no_grad():
@@ -17,24 +17,37 @@ class Vanilla(nn.Module):
 
 
 class melGAN(nn.Module):
-    def __init__(self):
+    def __init__(self, hop, ratios, input_size, ngf, n_res_g):
         super().__init__()
-        self.encoder = MelEncoder()
-        self.decoder = Generator(input_size=config.INPUT_SIZE,
-                                 ngf=config.NGF,
-                                 n_residual_layers=config.N_RES_G,
-                                 ratios=config.RATIOS)
+        self.encoder = MelEncoder(hop=hop, input_size=input_size)
+        self.decoder = Generator(input_size=input_size,
+                                 ngf=ngf,
+                                 n_residual_layers=n_res_g,
+                                 ratios=ratios)
 
-    def forward(self, x):
-        mel = self.encoder(x)
+    def forward(self, x, mel_encoded=False):
+        if mel_encoded:
+            mel = x
+        else:
+            mel = self.encoder(x)
+
         y = self.decoder(mel)
         return y
 
 
-def get_model():
+def get_model(config=config):
     if config.TYPE == "melgan":
-        return melGAN()
+        return melGAN(hop=config.HOP_LENGTH,
+                      ratios=config.RATIOS,
+                      input_size=config.INPUT_SIZE,
+                      ngf=config.NGF,
+                      n_res_g=config.N_RES_G)
+
     elif config.TYPE == "vanilla":
-        return Vanilla()
+        return Vanilla(hop=config.HOP_LENGTH,
+                       ratios=config.RATIOS,
+                       input_size=config.INPUT_SIZE,
+                       channels=config.CHANNELS,
+                       kernel=config.KERNEL)
     else:
         raise Exception(f"Model type {config.TYPE} not understood")

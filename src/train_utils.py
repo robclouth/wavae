@@ -51,7 +51,7 @@ def train_step_melgan(model, opt, data, writer, ROOT, step):
     writer.add_scalar("loss features", loss_feat, step)
 
     if step % config.BACKUP == 0:
-        backup_name = path.join(ROOT, f"melGAN_{step//1000}k.pth")
+        backup_name = path.join(ROOT, f"melgan_state.pth")
         states = [gen.state_dict(), dis.state_dict()]
         torch.save(states, backup_name)
 
@@ -78,7 +78,7 @@ def train_step_vanilla(model, opt, data, writer, ROOT, step):
     writer.add_scalar("loss_reg", loss_reg, step)
 
     if step % config.BACKUP == 0:
-        backup_name = path.join(ROOT, f"vanilla_{step//1000}k.pth")
+        backup_name = path.join(ROOT, f"vanilla_state.pth")
         states = model.state_dict()
         torch.save(states, backup_name)
 

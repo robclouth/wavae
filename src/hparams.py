@@ -10,6 +10,9 @@ class config(Config):
     INPUT_SIZE = 128
     NGF = 32
     N_RES_G = 3
+
+    HOP_LENGTH = 256
+
     RATIOS = setting(default=[1, 2, 1, 2],
                      vanilla=[1, 2, 1, 2],
                      melgan=[8, 8, 2, 2])
@@ -25,7 +28,7 @@ class config(Config):
 
     # TRAIN PARAMETERS
     SAMPRATE = 16000
-    N_SIGNAL = setting(default=32000, vanilla=32000, melgan=2**14)
+    N_SIGNAL = setting(default=2**15, vanilla=2**15, melgan=2**14)
     EPOCH = 1000
     BATCH = 1
     LR = 1e-4

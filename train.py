@@ -60,6 +60,10 @@ if config.TYPE == "vanilla":
 ROOT = path.join("runs", config.NAME, config.TYPE)
 writer = SummaryWriter(ROOT, flush_secs=20)
 
+with open(path.join(ROOT, "config.py"), "w") as config_out:
+    config_out.write("from effortless_config import Config\n")
+    config_out.write(str(config))
+
 # TRAINING PROCESS
 step = 0
 for e in range(config.EPOCH):

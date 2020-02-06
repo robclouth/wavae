@@ -7,19 +7,24 @@ class ConvEncoder(nn.Module):
     """
     Multi Layer Convolutional Variational Encoder
     """
-    def __init__(self):
+    def __init__(self, channels, kernel, ratios):
         super().__init__()
+
+        self.channels = channels
+        self.kernel = kernel
+        self.ratios = ratios
+
         self.convs = nn.ModuleList([
-            nn.Conv1d(config.CHANNELS[i],
-                      config.CHANNELS[i+1],
-                      config.KERNEL,
-                      padding=config.KERNEL//2,
-                      stride=config.RATIOS[i])\
-            for i in range(len(config.RATIOS))
+            nn.Conv1d(self.channels[i],
+                      self.channels[i+1],
+                      self.kernel,
+                      padding=self.kernel//2,
+                      stride=self.ratios[i])\
+            for i in range(len(self.ratios))
         ])
         self.bns = nn.ModuleList([
-            nn.BatchNorm1d(config.CHANNELS[i])\
-            for i in range(1,len(config.RATIOS))
+            nn.BatchNorm1d(self.channels[i])\
+            for i in range(1,len(self.ratios))
         ])
 
     def forward(self, x):
@@ -34,30 +39,35 @@ class ConvDecoder(nn.Module):
     """
     Multi Layer Convolutional Variational Decoder
     """
-    def __init__(self):
+    def __init__(self, channels, ratios, kernel):
+
+        self.channels = channels
+        self.ratios = ratios
+        self.kernel = kernel
+
         super().__init__()
-        channels = list(config.CHANNELS)
+        channels = list(self.channels)
         channels[-1] //= 2
         channels[0] *= 2
         self.convs = nn.ModuleList([])
-        for i in range(len(config.RATIOS))[::-1]:
-            if config.RATIOS[i] != 1:
+        for i in range(len(self.ratios))[::-1]:
+            if self.ratios[i] != 1:
                 self.convs.append(
                     nn.ConvTranspose1d(channels[i + 1],
                                        channels[i],
-                                       2 * config.RATIOS[i],
-                                       padding=config.RATIOS[i] // 2,
-                                       stride=config.RATIOS[i]))
+                                       2 * self.ratios[i],
+                                       padding=self.ratios[i] // 2,
+                                       stride=self.ratios[i]))
             else:
                 self.convs.append(
                     nn.Conv1d(channels[i + 1],
                               channels[i],
-                              config.KERNEL,
-                              padding=config.KERNEL // 2))
+                              self.kernel,
+                              padding=self.kernel // 2))
 
         self.bns = nn.ModuleList([
             nn.BatchNorm1d(channels[i])\
-            for i in range(1,len(config.RATIOS))[::-1]
+            for i in range(1,len(self.ratios))[::-1]
         ])
 
     def forward(self, x):
@@ -72,10 +82,12 @@ class TopVAE(nn.Module):
     """
     Top Variational Auto Encoder
     """
-    def __init__(self):
+    def __init__(self, channels, kernel, ratios):
         super().__init__()
-        self.encoder = ConvEncoder()
-        self.decoder = ConvDecoder()
+        self.encoder = ConvEncoder(channels, kernel, ratios)
+        self.decoder = ConvDecoder(channels, ratios, kernel)
+
+        self.channels = channels
 
         skipped = 0
         for p in self.parameters():
@@ -86,14 +98,13 @@ class TopVAE(nn.Module):
         print(f"Skipped {skipped} parameters during initialisation")
 
     def encode(self, x):
-        mean, logvar = torch.split(self.encoder(x), config.CHANNELS[-1] // 2,
-                                   1)
+        mean, logvar = torch.split(self.encoder(x), self.channels[-1] // 2, 1)
         z = torch.randn_like(mean) * torch.exp(logvar) + mean
         return z, mean, logvar
 
     def decode(self, z):
         rec = self.decoder(z)
-        mean, logvar = torch.split(rec, config.CHANNELS[0], 1)
+        mean, logvar = torch.split(rec, self.channels[0], 1)
         mean = torch.sigmoid(mean)
         logvar = torch.clamp(logvar, min=-10, max=0)
         y = torch.randn_like(mean) * torch.exp(logvar) + mean
