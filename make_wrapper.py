@@ -39,10 +39,52 @@ class Wrapper(nn.Module):
         return rec_waveform, z
 
 
+class Encoder(nn.Module):
+    def __init__(self, wrapper):
+        super().__init__()
+        self.wrapper = wrapper.vanilla
+
+    def forward(self, x):
+        mel = self.wrapper.melencoder(x)
+        z = self.wrapper.topvae.encode(mel)[0]
+        return z
+
+
+class Decoder(nn.Module):
+    def __init__(self, wrapper):
+        super().__init__()
+        self.wrapper = wrapper
+
+    def forward(self, z):
+        mel = self.wrapper.vanilla.topvae.decode(z)[0]
+        waveform = self.wrapper.melgan(mel, mel_encoded=True)
+        return waveform
+
+
 if __name__ == "__main__":
     wrapper = Wrapper()
     wrapper.eval()
 
-    x = torch.randn(1, 8192)
+    encoder = Encoder(wrapper)
+    encoder.eval()
 
-    torch.jit.trace(wrapper, x, check_trace=False).save(f"{NAME}_traced.ts")
+    decoder = Decoder(wrapper)
+    decoder.eval()
+
+    input_waveform = torch.randn(1, 8192)
+
+    # CHECK THAT EVERYTHING WORKS
+    wrapper(input_waveform)
+    input_z = encoder(input_waveform)
+    rec = decoder(input_z)
+
+    # TRACING TIME
+    torch.jit.trace(wrapper, input_waveform,
+                    check_trace=False).save(path.join(ROOT, "full_trace.ts"))
+
+    torch.jit.trace(encoder, input_waveform,
+                    check_trace=False).save(path.join(ROOT,
+                                                      "encoder_trace.ts"))
+    torch.jit.trace(decoder, input_z,
+                    check_trace=False).save(path.join(ROOT,
+                                                      "decoder_trace.ts"))
