@@ -2,6 +2,8 @@ import torch
 from . import config
 import torch.nn.functional as F
 from os import path
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def train_step_melgan(model, opt, data, writer, ROOT, step):
@@ -87,3 +89,19 @@ def train_step_vanilla(model, opt, data, writer, ROOT, step):
         writer.add_histogram("logvar_y", logvar_y.reshape(-1), step)
         writer.add_histogram("mean_z", mean_z.reshape(-1), step)
         writer.add_histogram("logvar_z", logvar_z.reshape(-1), step)
+
+        ori = S.detach().cpu().numpy()
+        ori = np.concatenate([o for o in ori[:4]], -1)
+
+        rec = y.detach().cpu().numpy()
+        rec = np.concatenate([r for r in rec[:4]], -1)
+
+        img = np.concatenate([rec, ori], 0)
+
+        plt.figure(figsize=(20, 10))
+        plt.imshow(img, aspect="auto", origin="lower", cmap="magma")
+        plt.axis(False)
+        plt.grid(False)
+        plt.tight_layout()
+        writer.add_figure("reconstruction", plt.gcf(), step)
+        plt.close()
