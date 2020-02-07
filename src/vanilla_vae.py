@@ -70,11 +70,21 @@ class ConvDecoder(nn.Module):
             for i in range(1,len(self.ratios))[::-1]
         ])
 
+        self.ar_freq = nn.GRU(1, 512, 1, batch_first=True)
+        self.lin_post_ar = nn.Linear(512, 1)
+
     def forward(self, x):
         for i, conv in enumerate(self.convs):
             x = conv(x)
             if i != len(self.convs) - 1:
                 x = self.bns[i](torch.relu(x))
+        # X.shape B x 128 x T
+        bsize = x.shape[0]
+        x = x.permute(0, 2, 1).reshape(-1, self.channels[0], 1)
+        x = self.ar_freq(x)[0]
+        x = self.lin_post_ar(x)
+        x = x.reshape(bsize, -1, self.channels[0]).permute(0, 2, 1)
+
         return x
 
 

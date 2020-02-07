@@ -1,15 +1,7 @@
-from src import Loader, get_model
 import torch
-torch.set_grad_enabled(False)
-import matplotlib.pyplot as plt
+from src.vanilla_vae import ConvDecoder
 
-model = get_model()  # top vae
-l = Loader("./preprocessed")
+cd = ConvDecoder([128, 96, 64, 32, 16], [1, 2, 1, 2], 9)
+x = torch.randn(1, 8, 8)
 
-data = torch.stack([l[0], l[10], l[20]], 0)
-
-mel = model.melencoder(data)
-
-plt.imshow(mel[0])
-plt.colorbar()
-plt.show()
+print(cd(x).shape)
