@@ -46,9 +46,9 @@ class ConvDecoder(nn.Module):
         self.kernel = kernel
 
         super().__init__()
-        channels = list(self.channels)
-        channels[-1] //= 2
-        channels[0] *= 2
+        self.channels = list(self.channels)
+        self.channels[-1] //= 2
+        self.channels[0] *= 2
         self.convs = nn.ModuleList([])
         for i in range(len(self.ratios))[::-1]:
             if self.ratios[i] != 1:
