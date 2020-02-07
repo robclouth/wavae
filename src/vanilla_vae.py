@@ -53,20 +53,20 @@ class ConvDecoder(nn.Module):
         for i in range(len(self.ratios))[::-1]:
             if self.ratios[i] != 1:
                 self.convs.append(
-                    nn.ConvTranspose1d(channels[i + 1],
-                                       channels[i],
+                    nn.ConvTranspose1d(self.channels[i + 1],
+                                       self.channels[i],
                                        2 * self.ratios[i],
                                        padding=self.ratios[i] // 2,
                                        stride=self.ratios[i]))
             else:
                 self.convs.append(
-                    nn.Conv1d(channels[i + 1],
-                              channels[i],
+                    nn.Conv1d(self.channels[i + 1],
+                              self.channels[i],
                               self.kernel,
                               padding=self.kernel // 2))
 
         self.bns = nn.ModuleList([
-            nn.BatchNorm1d(channels[i])\
+            nn.BatchNorm1d(self.channels[i])\
             for i in range(1,len(self.ratios))[::-1]
         ])
 
