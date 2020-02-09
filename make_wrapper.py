@@ -46,7 +46,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         mel = self.wrapper.melencoder(x)
-        z = self.wrapper.topvae.encode(mel)[0]
+        z = self.wrapper.topvae.encode(mel)[1]
         return z
 
 
