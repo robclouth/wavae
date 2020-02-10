@@ -1,7 +1,8 @@
 import torch
-from src.vanilla_vae import ConvDecoder
+from src import get_model
 
-cd = ConvDecoder([128, 96, 64, 32, 16], [1, 2, 1, 2], 9)
-x = torch.randn(1, 8, 8)
-
-print(cd(x).shape)
+vae = get_model()
+print(vae.__class__.__name__)
+print(vae)
+x = torch.randn(1, 2**15)
+vae(x)
