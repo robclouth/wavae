@@ -12,6 +12,10 @@ def cache_pad(*args):
     return torch.jit.script(CachedPadding(*args))
 
 
+# def cache_pad(*args):
+#     return CachedPadding(*args)
+
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
@@ -41,9 +45,15 @@ class ResnetBlock(nn.Module):
             WNConv1d(dim, dim, kernel_size=1),
         )
         self.shortcut = WNConv1d(dim, dim, kernel_size=1)
+        self.dilation = dilation
 
     def forward(self, x):
-        return self.shortcut(x) + self.block(x)
+        # print(x.shape)
+        # print(self.block)
+        # print(self.shortcut)
+        blockout = self.block(x)
+        shortcut = self.shortcut(x)
+        return blockout + shortcut
 
 
 class Generator(nn.Module):
@@ -56,7 +66,7 @@ class Generator(nn.Module):
         self.hop_length = np.prod(ratios)
         mult = int(2**len(ratios))
 
-        buf = int(config.BUFFER_SIZE // np.prod(config.RATIOS))
+        buf = int(config.BUFFER_SIZE // self.hop_length)
 
         model = [
             cache_pad(3, input_size, buf, True)
@@ -101,7 +111,8 @@ class Generator(nn.Module):
         self.apply(weights_init)
 
     def forward(self, x):
-        return self.model(x)
+        x = self.model(x)
+        return x
 
 
 class NLayerDiscriminator(nn.Module):

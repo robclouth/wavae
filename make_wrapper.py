@@ -4,6 +4,7 @@ import torch.nn as nn
 from src import TopVAE, Generator, MelEncoder, config, get_model
 from os import path
 import importlib
+from termcolor import colored
 
 config.parse_args()
 
@@ -18,17 +19,39 @@ class Wrapper(nn.Module):
     def __init__(self):
         super().__init__()
 
+        # BUILDING MELGAN
         config = importlib.import_module(config_melgan).config
         self.melgan = get_model(config)
-        self.melgan.load_state_dict(
-            torch.load(path.join(ROOT, "melgan", "melgan_state.pth"),
-                       map_location="cpu")[0])
 
+        pretrained_state_dict = torch.load(path.join(ROOT, "melgan",
+                                                     "melgan_state.pth"),
+                                           map_location="cpu")[0]
+        pretrained_state_dict = {
+            k: v
+            for k, v in pretrained_state_dict.items()
+            if ("previous_sample" not in k) and ("left_pad" not in k)
+        }
+
+        state_dict = self.melgan.state_dict()
+        state_dict.update(pretrained_state_dict)
+        self.melgan.load_state_dict(state_dict)
+
+        # BUILDING VANILLA
         config = importlib.import_module(config_vanilla).config
         self.vanilla = get_model(config)
-        self.vanilla.load_state_dict(
-            torch.load(path.join(ROOT, "vanilla", "vanilla_state.pth"),
-                       map_location="cpu"))
+
+        pretrained_state_dict = torch.load(path.join(ROOT, "vanilla",
+                                                     "vanilla_state.pth"),
+                                           map_location="cpu")
+        pretrained_state_dict = {
+            k: v
+            for k, v in pretrained_state_dict.items()
+            if ("previous_sample" not in k) and ("left_pad" not in k)
+        }
+
+        state_dict = self.vanilla.state_dict()
+        state_dict.update(pretrained_state_dict)
+        self.vanilla.load_state_dict(state_dict)
 
     def forward(self, x):
         y, mean_y, logvar_y, mean_z, logvar_z = self.vanilla(x)
@@ -74,7 +97,7 @@ if __name__ == "__main__":
     wrapper = Wrapper()
     wrapper.eval()
 
-    melencoder = MelEncoderWrapper(Wrapper)
+    melencoder = MelEncoderWrapper(wrapper)
     melencoder.eval()
 
     encoder = EncoderWrapper(wrapper)
@@ -83,13 +106,21 @@ if __name__ == "__main__":
     decoder = DecoderWrapper(wrapper)
     decoder.eval()
 
-    input_waveform = torch.randn(1, 8192)
+    input_waveform = torch.randn(1, config.BUFFER_SIZE)
 
     # CHECK THAT EVERYTHING WORKS
-    wrapper(input_waveform)
-    mel = melencoder(input_waveform)
+    print("Checking melencoder... ", end="")
+    mel = melencoder(input_waveform)[..., :config.BUFFER_SIZE //
+                                     config.HOP_LENGTH]
+    print(colored(f"melencoder is working, out shape {mel.shape}", "green"))
+
+    print("Checking encoder... ", end="")
     input_z = encoder(mel)
+    print(colored(f"encoder is working, out shape {input_z.shape}", "green"))
+
+    print("Checking decoder... ", end="")
     rec = decoder(input_z)
+    print(colored(f"decoder is working, out shape {rec.shape}", "green"))
 
     # TRACING TIME
     torch.jit.trace(melencoder, input_waveform, check_trace=False).save(

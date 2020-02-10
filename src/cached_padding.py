@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-torch.set_grad_enabled(False)
 
 
 class CachedPadding(nn.Module):
@@ -19,7 +18,7 @@ class CachedPadding(nn.Module):
 
     def forward(self, x):
         if self.cache:
-            assert x.shape == self.previous_sample.shape, f"Incoherence of input and cached shapes, expected input of shape {self.previous_sample.shape}, got {x.shape}"
+            # assert x.shape == self.previous_sample.shape, f"Incoherence of input and cached shapes, expected input of shape {self.previous_sample.shape}, got {x.shape}"
             current = torch.cat(
                 [self.left_pad, self.previous_sample, x[..., :self.padding]],
                 -1)
