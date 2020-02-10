@@ -72,7 +72,6 @@ class ConvDecoder(nn.Module):
 
         self.ar_freq = nn.GRU(1,
                               64,
-                              1,
                               num_layers=2,
                               batch_first=True,
                               bidirectional=True)
