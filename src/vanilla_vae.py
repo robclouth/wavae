@@ -70,7 +70,12 @@ class ConvDecoder(nn.Module):
             for i in range(1,len(self.ratios))[::-1]
         ])
 
-        self.ar_freq = nn.GRU(1, 64, 1, batch_first=True, bidirectional=True)
+        self.ar_freq = nn.GRU(1,
+                              64,
+                              1,
+                              num_layers=2,
+                              batch_first=True,
+                              bidirectional=True)
         self.lin_post_ar = nn.Linear(128, 1)
 
     def forward(self, x):
