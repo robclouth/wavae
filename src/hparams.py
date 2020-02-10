@@ -13,7 +13,7 @@ class config(Config):
 
     HOP_LENGTH = 256
 
-    RATIOS = setting(default=[1, 1, 1, 2],
+    RATIOS = setting(default=[1, 2, 1, 2],
                      vanilla=[1, 1, 1, 2],
                      melgan=[8, 8, 2, 2])
 
@@ -40,6 +40,10 @@ class config(Config):
 
     BACKUP = 10000
     EVAL = 1000
+
+    # INCREMENTAL GENERATION
+    BUFFER_SIZE = 4096
+    USE_CACHED_PADDING = False
 
 
 if __name__ == "__main__":

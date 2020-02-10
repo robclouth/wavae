@@ -1,5 +1,7 @@
 from .hparams import config
 
+from .cached_padding import CachedPadding
+
 from .gan_modules import Generator, Discriminator
 from .melencoder import MelEncoder
 from .vanilla_vae import TopVAE

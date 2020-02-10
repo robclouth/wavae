@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from . import config
+from . import config, CachedPadding
+import numpy as np
 
 
 class ConvEncoder(nn.Module):
@@ -14,14 +15,22 @@ class ConvEncoder(nn.Module):
         self.kernel = kernel
         self.ratios = ratios
 
-        self.convs = nn.ModuleList([
-            nn.Conv1d(self.channels[i],
-                      self.channels[i+1],
-                      self.kernel,
-                      padding=self.kernel//2,
-                      stride=self.ratios[i])\
-            for i in range(len(self.ratios))
-        ])
+        buf = config.BUFFER_SIZE // config.HOP_LENGTH
+
+        self.convs = nn.ModuleList([])
+        for i in range(len(self.ratios)):
+            self.convs.append(
+                nn.Sequential(
+                    torch.jit.script(
+                        CachedPadding(self.kernel // 2, self.channels[i],
+                                      buf)),
+                    nn.Conv1d(self.channels[i],
+                              self.channels[i + 1],
+                              self.kernel,
+                              padding=0,
+                              stride=self.ratios[i])))
+            buf = buf // self.ratios[i]
+
         self.bns = nn.ModuleList([
             nn.BatchNorm1d(self.channels[i])\
             for i in range(1,len(self.ratios))
@@ -45,11 +54,15 @@ class ConvDecoder(nn.Module):
         self.ratios = ratios
         self.kernel = kernel
 
+        buf = int(config.BUFFER_SIZE // config.HOP_LENGTH //
+                  np.prod(config.RATIOS))
+
         super().__init__()
         self.channels = list(self.channels)
         self.channels[-1] //= 2
         self.channels[0] *= 2
         self.convs = nn.ModuleList([])
+
         for i in range(len(self.ratios))[::-1]:
             if self.ratios[i] != 1:
                 self.convs.append(
@@ -58,12 +71,17 @@ class ConvDecoder(nn.Module):
                                        2 * self.ratios[i],
                                        padding=self.ratios[i] // 2,
                                        stride=self.ratios[i]))
+                buf = buf * self.ratios[i]
             else:
                 self.convs.append(
-                    nn.Conv1d(self.channels[i + 1],
-                              self.channels[i],
-                              self.kernel,
-                              padding=self.kernel // 2))
+                    nn.Sequential(
+                        torch.jit.script(
+                            CachedPadding(self.kernel // 2,
+                                          self.channels[i + 1], buf)),
+                        nn.Conv1d(self.channels[i + 1],
+                                  self.channels[i],
+                                  self.kernel,
+                                  padding=0)))
 
         self.bns = nn.ModuleList([
             nn.BatchNorm1d(self.channels[i])\
@@ -140,3 +158,10 @@ class TopVAE(nn.Module):
         loss_reg = torch.mean(loss_reg)
 
         return y, mean_y, logvar_y, mean_z, logvar_z, loss_rec, loss_reg
+
+    def activate_cache_padding(self):
+        for i, elm in enumerate(self.encoder.convs):
+            self.encoder.convs[i][0].cache = True
+        for i, elm in enumerate(self.decoder.convs):
+            if elm.__class__.__name__ == "Sequential":
+                self.decoder.convs[i][0].cache = True
