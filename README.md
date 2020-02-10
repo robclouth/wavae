@@ -28,7 +28,7 @@ Onced both models are trained, trace them using
 python make_wrapper.py --name AGAIN_THE_SAME_COOL_NAME
 ```
 
-It will produce two traced scripts in `runs/COOL_NAME/*.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code
+If you want to create an incremental wrapper of the model, don't forget to pass the `--use-cached-padding` option. It will produce two traced scripts in `runs/COOL_NAME/*.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code
 
 **Using Python**
 

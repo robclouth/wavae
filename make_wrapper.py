@@ -132,3 +132,5 @@ if __name__ == "__main__":
     torch.jit.trace(decoder, input_z,
                     check_trace=False).save(path.join(ROOT,
                                                       "decoder_trace.ts"))
+
+    print("Traced wrapper created !")
