@@ -42,7 +42,7 @@ class config(Config):
     EVAL = 1000
 
     # INCREMENTAL GENERATION
-    BUFFER_SIZE = 4096
+    BUFFER_SIZE = 1024
     USE_CACHED_PADDING = False
 
 

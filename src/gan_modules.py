@@ -5,7 +5,11 @@ from librosa.filters import mel as librosa_mel_fn
 from torch.nn.utils import weight_norm
 import numpy as np
 
-from . import config
+from . import config, CachedPadding
+
+
+def cache_pad(*args):
+    return torch.jit.script(CachedPadding(*args))
 
 
 def weights_init(m):
@@ -25,57 +29,13 @@ def WNConvTranspose1d(*args, **kwargs):
     return weight_norm(nn.ConvTranspose1d(*args, **kwargs))
 
 
-class Audio2Mel(nn.Module):
-    def __init__(
-        self,
-        n_fft=1024,
-        hop_length=256,
-        win_length=1024,
-        sampling_rate=22050,
-        n_mel_channels=80,
-        mel_fmin=0.0,
-        mel_fmax=None,
-    ):
-        super().__init__()
-        ##############################################
-        # FFT Parameters                              #
-        ##############################################
-        window = torch.hann_window(win_length).float()
-        mel_basis = librosa_mel_fn(sampling_rate, n_fft, n_mel_channels,
-                                   mel_fmin, mel_fmax)
-        mel_basis = torch.from_numpy(mel_basis).float()
-        self.register_buffer("mel_basis", mel_basis)
-        self.register_buffer("window", window)
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.sampling_rate = sampling_rate
-        self.n_mel_channels = n_mel_channels
-
-    def forward(self, audio):
-        p = (self.n_fft - self.hop_length) // 2
-        audio = F.pad(audio, (p, p), "reflect").squeeze(1)
-        fft = torch.stft(
-            audio,
-            n_fft=self.n_fft,
-            hop_length=self.hop_length,
-            win_length=self.win_length,
-            window=self.window,
-            center=False,
-        )
-        real_part, imag_part = fft.unbind(-1)
-        magnitude = torch.sqrt(real_part**2 + imag_part**2)
-        mel_output = torch.matmul(self.mel_basis, magnitude)
-        log_mel_spec = torch.log10(torch.clamp(mel_output, min=1e-5))
-        return log_mel_spec
-
-
 class ResnetBlock(nn.Module):
-    def __init__(self, dim, dilation=1):
+    def __init__(self, dim, dilation=1, buffer_size=None):
         super().__init__()
         self.block = nn.Sequential(
             nn.LeakyReLU(0.2),
-            nn.ReflectionPad1d(dilation),
+            cache_pad(dilation, dim, buffer_size, True)
+            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(dilation),
             WNConv1d(dim, dim, kernel_size=3, dilation=dilation),
             nn.LeakyReLU(0.2),
             WNConv1d(dim, dim, kernel_size=1),
@@ -96,8 +56,11 @@ class Generator(nn.Module):
         self.hop_length = np.prod(ratios)
         mult = int(2**len(ratios))
 
+        buf = int(config.BUFFER_SIZE // np.prod(config.RATIOS))
+
         model = [
-            nn.ReflectionPad1d(3),
+            cache_pad(3, input_size, buf, True)
+            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(3),
             WNConv1d(input_size, mult * ngf, kernel_size=7, padding=0),
         ]
 
@@ -115,14 +78,21 @@ class Generator(nn.Module):
                 ),
             ]
 
+            buf = buf * r
+
             for j in range(n_residual_layers):
-                model += [ResnetBlock(mult * ngf // 2, dilation=3**j)]
+                model += [
+                    ResnetBlock(mult * ngf // 2,
+                                dilation=3**j,
+                                buffer_size=buf)
+                ]
 
             mult //= 2
 
         model += [
             nn.LeakyReLU(0.2),
-            nn.ReflectionPad1d(3),
+            cache_pad(3, ngf, buf, True)
+            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(3),
             WNConv1d(ngf, 1, kernel_size=7, padding=0),
             nn.Tanh(),
         ]
