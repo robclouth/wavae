@@ -23,8 +23,8 @@ class config(Config):
     DOWNSAMP_D = 4
 
     # AUTOENCODER
-    CHANNELS = [128, 96, 64, 48, 32]
-    LIN_SIZE = [32, 32, 16]
+    CHANNELS = [128, 256, 256, 512, 512]
+    LIN_SIZE = [512, 512, 16]
     KERNEL = 3
 
     # TRAIN PARAMETERS
