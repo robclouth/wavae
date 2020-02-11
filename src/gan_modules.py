@@ -5,15 +5,7 @@ from librosa.filters import mel as librosa_mel_fn
 from torch.nn.utils import weight_norm
 import numpy as np
 
-from . import config, CachedPadding
-
-
-def cache_pad(*args):
-    return torch.jit.script(CachedPadding(*args))
-
-
-# def cache_pad(*args):
-#     return CachedPadding(*args)
+from . import config, cache_pad
 
 
 def weights_init(m):
@@ -61,7 +53,9 @@ class Generator(nn.Module):
                  input_size=config.INPUT_SIZE,
                  ngf=config.NGF,
                  n_residual_layers=config.N_RES_G,
-                 ratios=config.RATIOS):
+                 ratios=config.RATIOS,
+                 use_cached_padding=config.USE_CACHED_PADDING):
+
         super().__init__()
         self.hop_length = np.prod(ratios)
         mult = int(2**len(ratios))
@@ -70,7 +64,7 @@ class Generator(nn.Module):
 
         model = [
             cache_pad(3, input_size, buf, True)
-            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(3),
+            if use_cached_padding else nn.ReflectionPad1d(3),
             WNConv1d(input_size, mult * ngf, kernel_size=7, padding=0),
         ]
 
@@ -102,16 +96,20 @@ class Generator(nn.Module):
         model += [
             nn.LeakyReLU(0.2),
             cache_pad(3, ngf, buf, True)
-            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(3),
+            if use_cached_padding else nn.ReflectionPad1d(3),
             WNConv1d(ngf, 1, kernel_size=7, padding=0),
             nn.Tanh(),
         ]
 
         self.model = nn.Sequential(*model)
+        # self.model = nn.ModuleList(model)
         self.apply(weights_init)
 
     def forward(self, x):
-        x = self.model(x)
+        # x = self.model(x)
+        # for elm in self.model:
+        #     print(elm.__class__.__name__)
+        #     x = elm(x)
         return x
 
 

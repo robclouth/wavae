@@ -20,8 +20,9 @@ class Wrapper(nn.Module):
         super().__init__()
 
         # BUILDING MELGAN
-        config = importlib.import_module(config_melgan).config
-        self.melgan = get_model(config)
+        hparams = importlib.import_module(config_melgan).config
+        hparams.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
+        self.melgan = get_model(hparams)
 
         pretrained_state_dict = torch.load(path.join(ROOT, "melgan",
                                                      "melgan_state.pth"),
@@ -37,8 +38,9 @@ class Wrapper(nn.Module):
         self.melgan.load_state_dict(state_dict)
 
         # BUILDING VANILLA
-        config = importlib.import_module(config_vanilla).config
-        self.vanilla = get_model(config)
+        hparams = importlib.import_module(config_vanilla).config
+        hparams.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
+        self.vanilla = get_model(hparams)
 
         pretrained_state_dict = torch.load(path.join(ROOT, "vanilla",
                                                      "vanilla_state.pth"),

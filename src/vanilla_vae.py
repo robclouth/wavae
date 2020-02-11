@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from . import config, CachedPadding
+from . import config, cache_pad
 import numpy as np
 
 
@@ -8,7 +8,7 @@ class ConvEncoder(nn.Module):
     """
     Multi Layer Convolutional Variational Encoder
     """
-    def __init__(self, channels, kernel, ratios):
+    def __init__(self, channels, kernel, ratios, use_cached_padding):
         super().__init__()
 
         self.channels = channels
@@ -21,9 +21,9 @@ class ConvEncoder(nn.Module):
         for i in range(len(self.ratios)):
             self.convs.append(
                 nn.Sequential(
-                    torch.jit.script(
-                        CachedPadding(self.kernel // 2, self.channels[i],
-                                      buf)),
+                    cache_pad(self.kernel // 2, self.channels[i], buf, True)
+                    if use_cached_padding else cache_pad(
+                        self.kernel // 2, self.channels[i], buf, False),
                     nn.Conv1d(self.channels[i],
                               self.channels[i + 1],
                               self.kernel,
@@ -48,14 +48,14 @@ class ConvDecoder(nn.Module):
     """
     Multi Layer Convolutional Variational Decoder
     """
-    def __init__(self, channels, ratios, kernel):
+    def __init__(self, channels, ratios, kernel, use_cached_padding):
 
         self.channels = channels
         self.ratios = ratios
         self.kernel = kernel
 
         buf = int(config.BUFFER_SIZE // config.HOP_LENGTH //
-                  np.prod(config.RATIOS))
+                  np.prod(self.ratios))
 
         super().__init__()
         self.channels = list(self.channels)
@@ -75,9 +75,10 @@ class ConvDecoder(nn.Module):
             else:
                 self.convs.append(
                     nn.Sequential(
-                        torch.jit.script(
-                            CachedPadding(self.kernel // 2,
-                                          self.channels[i + 1], buf)),
+                        cache_pad(self.kernel // 2, self.channels[i + 1], buf,
+                                  True) if use_cached_padding else cache_pad(
+                                      self.kernel //
+                                      2, self.channels[i + 1], buf, False),
                         nn.Conv1d(self.channels[i + 1],
                                   self.channels[i],
                                   self.kernel,
@@ -114,10 +115,12 @@ class TopVAE(nn.Module):
     """
     Top Variational Auto Encoder
     """
-    def __init__(self, channels, kernel, ratios):
+    def __init__(self, channels, kernel, ratios, use_cached_padding):
         super().__init__()
-        self.encoder = ConvEncoder(channels, kernel, ratios)
-        self.decoder = ConvDecoder(channels, ratios, kernel)
+        self.encoder = ConvEncoder(channels, kernel, ratios,
+                                   use_cached_padding)
+        self.decoder = ConvDecoder(channels, ratios, kernel,
+                                   use_cached_padding)
 
         self.channels = channels
 
@@ -158,10 +161,3 @@ class TopVAE(nn.Module):
         loss_reg = torch.mean(loss_reg)
 
         return y, mean_y, logvar_y, mean_z, logvar_z, loss_rec, loss_reg
-
-    def activate_cache_padding(self):
-        for i, elm in enumerate(self.encoder.convs):
-            self.encoder.convs[i][0].cache = True
-        for i, elm in enumerate(self.decoder.convs):
-            if elm.__class__.__name__ == "Sequential":
-                self.decoder.convs[i][0].cache = True
