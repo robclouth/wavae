@@ -6,3 +6,5 @@
 *.mdb
 *.vscode
 *.ts
+*build*
+*bin*
