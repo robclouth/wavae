@@ -64,12 +64,29 @@ class Wrapper(nn.Module):
         return rec_waveform, z
 
 
+class BufferSTFT(nn.Module):
+    def __init__(self, buffer_size, hop_length):
+        super().__init__()
+        buffer = torch.zeros(1, 2048 + hop_length)
+        self.register_buffer("buffer", buffer)
+        self.buffer_size = buffer_size
+
+    def forward(self, x):
+        self.buffer = torch.roll(self.buffer, -self.buffer_size, -1)
+        self.buffer[:, -self.buffer_size:] = x
+        return self.buffer
+
+
 class MelEncoderWrapper(nn.Module):
     def __init__(self, wrapper):
         super().__init__()
         self.wrapper = wrapper.vanilla
+        self.buffer = torch.jit.script(
+            BufferSTFT(config.BUFFER_SIZE, config.HOP_LENGTH))
 
     def forward(self, x):
+        if config.USE_CACHED_PADDING:
+            x = self.buffer(x)
         mel = self.wrapper.melencoder(x)
         return mel
 
@@ -114,7 +131,10 @@ if __name__ == "__main__":
     decoder.eval()
     print(colored("Success!", "green"))
 
-    N = 8192
+    if config.USE_CACHED_PADDING:
+        N = config.BUFFER_SIZE
+    else:
+        N = 8192
 
     input_waveform = torch.randn(1, N)
 

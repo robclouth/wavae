@@ -7,7 +7,7 @@ module = lambda x: torch.sqrt(x[..., 0]**2 + x[..., 1]**2)
 
 
 class MelEncoder(nn.Module):
-    def __init__(self, hop, input_size):
+    def __init__(self, hop, input_size, center=False):
         super().__init__()
         self.hop = hop
         self.nfft = 2048
@@ -16,12 +16,13 @@ class MelEncoder(nn.Module):
         mel = torch.from_numpy(mel)
 
         self.register_buffer("mel", mel)
+        self.center = center
 
     def forward(self, x):
         if len(x.shape) == 3:
             x = x.squeeze(1)
 
-        S = torch.stft(x, self.nfft, self.hop, 512)
+        S = torch.stft(x, self.nfft, self.hop, 512, center=self.center)
         S = 2 * module(S) / 512
         S_mel = self.mel.matmul(S)
         if self.training:

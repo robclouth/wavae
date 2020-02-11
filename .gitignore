@@ -8,3 +8,4 @@
 *.ts
 *build*
 *bin*
+*.wav

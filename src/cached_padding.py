@@ -25,7 +25,7 @@ class CachedPadding(nn.Module):
     def forward(self, x):
         if self.cache:
             padded_x = torch.cat([self.left_pad, x], -1)
-            self.left_pad = x[..., -2 * self.padding:]
+            self.left_pad = padded_x[..., -2 * self.padding:]
         else:
             padded_x = nn.functional.pad(x, (self.padding, self.padding))
         return padded_x

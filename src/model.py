@@ -7,7 +7,9 @@ class Vanilla(nn.Module):
     def __init__(self, hop, ratios, input_size, channels, kernel,
                  use_cached_padding):
         super().__init__()
-        self.melencoder = MelEncoder(hop=hop, input_size=input_size)
+        self.melencoder = MelEncoder(hop=hop,
+                                     input_size=input_size,
+                                     center=not use_cached_padding)
         self.topvae = TopVAE(channels=channels,
                              kernel=kernel,
                              ratios=ratios,
@@ -24,7 +26,9 @@ class melGAN(nn.Module):
     def __init__(self, hop, ratios, input_size, ngf, n_res_g,
                  use_cached_padding):
         super().__init__()
-        self.encoder = MelEncoder(hop=hop, input_size=input_size)
+        self.encoder = MelEncoder(hop=hop,
+                                  input_size=input_size,
+                                  center=not use_cached_padding)
         self.decoder = Generator(input_size=input_size,
                                  ngf=ngf,
                                  n_residual_layers=n_res_g,
