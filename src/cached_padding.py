@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+from . import config
 
-SCRIPT = True
+SCRIPT = config.USE_CACHED_PADDING
 
 
 def cache_pad(*args):
