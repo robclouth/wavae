@@ -1,28 +1,11 @@
-from src import cache_pad
 import torch
 torch.set_grad_enabled(False)
-import torch.nn as nn
+from src import get_model, config
+config.parse_args()
 
+model = get_model()
+x = torch.randn(1, 2048)
 
-class TestScript(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.pc = cache_pad(2, 1, True)
+print(model(x).shape)
 
-    def forward(self, x):
-        return self.pc(x)
-
-
-x = torch.arange(16).float().reshape(1, 1, -1)
-ts = TestScript()
-
-ts(x)
-
-traced = torch.jit.trace(ts, x)
-
-x = torch.split(x, 4, -1)
-
-for elm in x:
-    # print("regular", ts(elm))
-    print("traced", traced(elm))
-    print("\n")
+model.decoder.allow_spreading()

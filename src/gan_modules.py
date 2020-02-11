@@ -98,11 +98,17 @@ class Generator(nn.Module):
         self.apply(weights_init)
 
     def forward(self, x):
-        # x = self.model(x)
+        x = self.model(x)
         # for elm in self.model:
+        #     print(x.shape)
         #     print(elm.__class__.__name__)
         #     x = elm(x)
         return x
+
+    def allow_spreading(self):
+        for elm in self.model:
+            if elm.__class__.__name__ == "ConvTranspose1d":
+                elm.padding = (0, )
 
 
 class NLayerDiscriminator(nn.Module):

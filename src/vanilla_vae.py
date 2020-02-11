@@ -89,6 +89,7 @@ class ConvDecoder(nn.Module):
     def forward(self, x):
         for i, conv in enumerate(self.convs):
             x = conv(x)
+
             if i != len(self.convs) - 1:
                 x = self.bns[i](torch.relu(x))
         # X.shape B x 128 x T

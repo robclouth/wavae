@@ -23,11 +23,11 @@ class CachedPadding(nn.Module):
 
     def forward(self, x):
         if self.cache:
-            current = torch.cat([self.left_pad, x], -1)
-            self.left_pad = x[..., -self.padding:]
+            padded_x = torch.cat([self.left_pad, x], -1)
+            self.left_pad = x[..., -2 * self.padding:]
         else:
-            current = nn.functional.pad(x, (self.padding, self.padding))
-        return current
+            padded_x = nn.functional.pad(x, (self.padding, self.padding))
+        return padded_x
 
     def __repr__(self):
         return f"CachedPadding(padding={self.padding}, cache={self.cache})"
