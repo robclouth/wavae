@@ -13,8 +13,8 @@ class config(Config):
 
     HOP_LENGTH = 256
 
-    RATIOS = setting(default=[1, 2, 1, 2],
-                     vanilla=[1, 1, 1, 2],
+    RATIOS = setting(default=[1, 1, 1, 2, 1, 1, 1],
+                     vanilla=[1, 1, 1, 2, 1, 1, 1],
                      melgan=[8, 8, 2, 2])
 
     NUM_D = 3
@@ -23,9 +23,8 @@ class config(Config):
     DOWNSAMP_D = 4
 
     # AUTOENCODER
-    CHANNELS = [128, 256, 256, 512, 512]
-    LIN_SIZE = [512, 512, 16]
-    KERNEL = 3
+    CHANNELS = [128, 256, 256, 512, 512, 512, 128, 32]
+    KERNEL = 5
 
     # TRAIN PARAMETERS
     SAMPRATE = 16000

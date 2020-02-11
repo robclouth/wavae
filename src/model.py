@@ -4,14 +4,13 @@ from . import Generator, Discriminator, MelEncoder, TopVAE, config
 
 
 class Vanilla(nn.Module):
-    def __init__(self, hop, ratios, input_size, channels, lin_size, kernel,
+    def __init__(self, hop, ratios, input_size, channels, kernel,
                  use_cached_padding):
         super().__init__()
         self.melencoder = MelEncoder(hop=hop, input_size=input_size)
         self.topvae = TopVAE(channels=channels,
                              kernel=kernel,
                              ratios=ratios,
-                             lin_size=lin_size,
                              use_cached_padding=use_cached_padding)
 
     def forward(self, x):
@@ -56,7 +55,6 @@ def get_model(config=config):
                        ratios=config.RATIOS,
                        input_size=config.INPUT_SIZE,
                        channels=config.CHANNELS,
-                       lin_size=config.LIN_SIZE,
                        kernel=config.KERNEL,
                        use_cached_padding=config.USE_CACHED_PADDING)
     else:

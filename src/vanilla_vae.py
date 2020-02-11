@@ -8,7 +8,7 @@ class ConvEncoder(nn.Module):
     """
     Multi Layer Convolutional Variational Encoder
     """
-    def __init__(self, channels, kernel, ratios, lin_size, use_cached_padding):
+    def __init__(self, channels, kernel, ratios, use_cached_padding):
         super().__init__()
 
         self.channels = channels
@@ -24,25 +24,15 @@ class ConvEncoder(nn.Module):
                           self.channels[i + 1],
                           self.kernel,
                           padding=0,
-                          stride=self.ratios[i]),
-                nn.ReLU(),
-                nn.BatchNorm1d(self.channels[i + 1])
+                          stride=self.ratios[i])
             ]
+            if i != len(self.ratios) - 1:
+                self.convs += [nn.ReLU(), nn.BatchNorm1d(self.channels[i + 1])]
 
         self.convs = nn.Sequential(*self.convs)
 
-        self.lins = []
-        for i in range(len(lin_size) - 1):
-            self.lins.append(nn.Linear(lin_size[i], lin_size[i + 1]))
-            if i != len(lin_size) - 2:
-                self.lins.append(nn.ReLU())
-        self.lins = nn.Sequential(*self.lins)
-
     def forward(self, x):
         x = self.convs(x)
-        x = x.permute(0, 2, 1)
-        x = self.lins(x)
-        x = x.permute(0, 2, 1)
         return x
 
 
@@ -50,7 +40,7 @@ class ConvDecoder(nn.Module):
     """
     Multi Layer Convolutional Variational Decoder
     """
-    def __init__(self, channels, ratios, lin_size, kernel, use_cached_padding):
+    def __init__(self, channels, ratios, kernel, use_cached_padding):
 
         self.channels = channels
         self.ratios = ratios
@@ -59,16 +49,7 @@ class ConvDecoder(nn.Module):
         super().__init__()
         self.channels = list(self.channels)
         self.channels[0] *= 2
-
-        self.lin_size = list(lin_size)
-        self.lin_size[-1] //= 2
-
-        self.lins = []
-
-        for i in range(len(self.lin_size) - 1)[::-1]:
-            self.lins.append(nn.Linear(self.lin_size[i + 1], self.lin_size[i]))
-            self.lins.append(nn.ReLU())
-        self.lins = nn.Sequential(*self.lins)
+        self.channels[-1] //= 2
 
         self.convs = []
 
@@ -95,9 +76,6 @@ class ConvDecoder(nn.Module):
         self.convs = nn.Sequential(*self.convs)
 
     def forward(self, x):
-        x = x.permute(0, 2, 1)
-        x = self.lins(x)
-        x = x.permute(0, 2, 1)
         x = self.convs(x)
         return x
 
@@ -111,15 +89,14 @@ class TopVAE(nn.Module):
     """
     Top Variational Auto Encoder
     """
-    def __init__(self, channels, kernel, ratios, lin_size, use_cached_padding):
+    def __init__(self, channels, kernel, ratios, use_cached_padding):
         super().__init__()
-        self.encoder = ConvEncoder(channels, kernel, ratios, lin_size,
+        self.encoder = ConvEncoder(channels, kernel, ratios,
                                    use_cached_padding)
-        self.decoder = ConvDecoder(channels, ratios, lin_size, kernel,
+        self.decoder = ConvDecoder(channels, ratios, kernel,
                                    use_cached_padding)
 
         self.channels = channels
-        self.lin_size = lin_size
 
         skipped = 0
         for p in self.parameters():
@@ -130,7 +107,7 @@ class TopVAE(nn.Module):
 
     def encode(self, x):
         out = self.encoder(x)
-        mean, logvar = torch.split(out, self.lin_size[-1] // 2, 1)
+        mean, logvar = torch.split(out, self.channels[-1] // 2, 1)
         z = torch.randn_like(mean) * torch.exp(logvar) + mean
         return z, mean, logvar
 
