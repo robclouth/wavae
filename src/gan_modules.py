@@ -26,11 +26,11 @@ def WNConvTranspose1d(*args, **kwargs):
 
 
 class ResnetBlock(nn.Module):
-    def __init__(self, dim, dilation=1, buffer_size=None):
+    def __init__(self, dim, dilation=1):
         super().__init__()
         self.block = nn.Sequential(
             nn.LeakyReLU(0.2),
-            cache_pad(dilation, dim, buffer_size, True)
+            cache_pad(dilation, dim, True)
             if config.USE_CACHED_PADDING else nn.ReflectionPad1d(dilation),
             WNConv1d(dim, dim, kernel_size=3, dilation=dilation),
             nn.LeakyReLU(0.2),
@@ -60,10 +60,8 @@ class Generator(nn.Module):
         self.hop_length = np.prod(ratios)
         mult = int(2**len(ratios))
 
-        buf = int(config.BUFFER_SIZE // self.hop_length)
-
         model = [
-            cache_pad(3, input_size, buf, True)
+            cache_pad(3, input_size, True)
             if use_cached_padding else nn.ReflectionPad1d(3),
             WNConv1d(input_size, mult * ngf, kernel_size=7, padding=0),
         ]
@@ -82,20 +80,14 @@ class Generator(nn.Module):
                 ),
             ]
 
-            buf = buf * r
-
             for j in range(n_residual_layers):
-                model += [
-                    ResnetBlock(mult * ngf // 2,
-                                dilation=3**j,
-                                buffer_size=buf)
-                ]
+                model += [ResnetBlock(mult * ngf // 2, dilation=3**j)]
 
             mult //= 2
 
         model += [
             nn.LeakyReLU(0.2),
-            cache_pad(3, ngf, buf, True)
+            cache_pad(3, ngf, True)
             if use_cached_padding else nn.ReflectionPad1d(3),
             WNConv1d(ngf, 1, kernel_size=7, padding=0),
             nn.Tanh(),

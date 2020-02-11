@@ -15,21 +15,17 @@ class ConvEncoder(nn.Module):
         self.kernel = kernel
         self.ratios = ratios
 
-        buf = config.BUFFER_SIZE // config.HOP_LENGTH
-
         self.convs = nn.ModuleList([])
         for i in range(len(self.ratios)):
             self.convs.append(
                 nn.Sequential(
-                    cache_pad(self.kernel // 2, self.channels[i], buf, True)
-                    if use_cached_padding else cache_pad(
-                        self.kernel // 2, self.channels[i], buf, False),
+                    cache_pad(self.kernel // 2, self.channels[i],
+                              use_cached_padding),
                     nn.Conv1d(self.channels[i],
                               self.channels[i + 1],
                               self.kernel,
                               padding=0,
                               stride=self.ratios[i])))
-            buf = buf // self.ratios[i]
 
         self.bns = nn.ModuleList([
             nn.BatchNorm1d(self.channels[i])\
@@ -54,9 +50,6 @@ class ConvDecoder(nn.Module):
         self.ratios = ratios
         self.kernel = kernel
 
-        buf = int(config.BUFFER_SIZE // config.HOP_LENGTH //
-                  np.prod(self.ratios))
-
         super().__init__()
         self.channels = list(self.channels)
         self.channels[-1] //= 2
@@ -71,14 +64,11 @@ class ConvDecoder(nn.Module):
                                        2 * self.ratios[i],
                                        padding=self.ratios[i] // 2,
                                        stride=self.ratios[i]))
-                buf = buf * self.ratios[i]
             else:
                 self.convs.append(
                     nn.Sequential(
-                        cache_pad(self.kernel // 2, self.channels[i + 1], buf,
-                                  True) if use_cached_padding else cache_pad(
-                                      self.kernel //
-                                      2, self.channels[i + 1], buf, False),
+                        cache_pad(self.kernel // 2, self.channels[i + 1],
+                                  use_cached_padding),
                         nn.Conv1d(self.channels[i + 1],
                                   self.channels[i],
                                   self.kernel,
@@ -130,7 +120,6 @@ class TopVAE(nn.Module):
                 nn.init.xavier_normal_(p)
             except:
                 skipped += 1
-        print(f"Skipped {skipped} parameters during initialisation")
 
     def encode(self, x):
         mean, logvar = torch.split(self.encoder(x), self.channels[-1] // 2, 1)

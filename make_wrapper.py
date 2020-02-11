@@ -96,6 +96,7 @@ class DecoderWrapper(nn.Module):
 
 
 if __name__ == "__main__":
+    print("Building model... ", end="")
     wrapper = Wrapper()
     wrapper.eval()
 
@@ -107,13 +108,16 @@ if __name__ == "__main__":
 
     decoder = DecoderWrapper(wrapper)
     decoder.eval()
+    print(colored("Success!", "green"))
 
-    input_waveform = torch.randn(1, config.BUFFER_SIZE)
+    N = 8192
+
+    input_waveform = torch.randn(1, N)
 
     # CHECK THAT EVERYTHING WORKS
     print("Checking melencoder... ", end="")
-    mel = melencoder(input_waveform)[..., :config.BUFFER_SIZE //
-                                     config.HOP_LENGTH]
+    mel = melencoder(input_waveform)[..., :N //
+                                     melencoder.wrapper.melencoder.hop]
     print(colored(f"melencoder is working, out shape {mel.shape}", "green"))
 
     print("Checking encoder... ", end="")
