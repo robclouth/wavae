@@ -89,6 +89,10 @@ class DecoderWrapper(nn.Module):
         super().__init__()
         self.wrapper = wrapper
 
+        if config.USE_CACHED_PADDING:
+            self.wrapper.vanilla.topvae.decoder.allow_spreading()
+            self.wrapper.melgan.decoder.allow_spreading()
+
     def forward(self, z):
         mel = self.wrapper.vanilla.topvae.decode(z)[0]
         waveform = self.wrapper.melgan(mel, mel_encoded=True)
