@@ -10,17 +10,17 @@
 class WaVAE_ENCODER : public DeepAudioEngine {
 public:
   WaVAE_ENCODER();
-  void addBuffer(float *buffer, int n) override;
-  void getBuffer(float *buffer, int n) override;
+  void addBuffer(float **buffer, int n_sample, int n_channel) override;
+  void getBuffer(float **buffer, int n_sample, int n_channel) override;
   int load(std::string name) override;
   int getInputChannelNumber() override;
   int getOutputChannelNumber() override;
 
-  float *encode(float *input);
+  void encode(float *input);
 
 protected:
   torch::jit::script::Module melencoder, encoder;
   float input_buffer[BUFFERSIZE], *latent_out;
   int head_input_buffer;
-  int is_loaded;
+  int is_loaded, z_available;
 };

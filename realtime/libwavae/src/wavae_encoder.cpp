@@ -1,13 +1,15 @@
 #include "wavae_encoder.h"
 #include <algorithm>
 #include <iostream>
+#include <stdio.h>
 #include <vector>
 
-WaVAE_ENCODER::WaVAE_ENCODER() : head_input_buffer(0), is_loaded(0) {
+WaVAE_ENCODER::WaVAE_ENCODER()
+    : head_input_buffer(0), is_loaded(0), z_available(0) {
   torch::NoGradGuard no_grad_guard;
 }
 
-float *WaVAE_ENCODER::encode(float *input) {
+void WaVAE_ENCODER::encode(float *input) {
   // FILL TENSOR WITH INPUT BUFFER
   torch::Tensor waveform = torch::zeros({BUFFERSIZE});
   for (int i(0); i < BUFFERSIZE; i++) {
@@ -23,26 +25,36 @@ float *WaVAE_ENCODER::encode(float *input) {
   auto mel = melencoder.forward(inputs);
   melencoder_out.push_back(mel);
 
-  float *z =
+  auto out =
       encoder.forward(melencoder_out).toTensor().reshape({-1}).data<float>();
 
-  return z;
+  memcpy(latent_out, out, N_LATENT * sizeof(float));
 }
 
-void WaVAE_ENCODER::addBuffer(float *buffer, int n) {
-  while (n--) {
-    input_buffer[head_input_buffer++] = *buffer++;
+void WaVAE_ENCODER::addBuffer(float **buffer, int n_sample, int n_channel) {
+  while (n_sample--) {
+    input_buffer[head_input_buffer++] = *(buffer[0])++;
     if (head_input_buffer == BUFFERSIZE) {
       head_input_buffer = 0;
-      latent_out = encode(input_buffer);
+      encode(input_buffer);
+      z_available = 1;
     }
   }
 }
 
-void WaVAE_ENCODER::getBuffer(float *buffer, int n) {
-  // n = LATENT_DIM * BUFFER_SIZE
-  for (int i(0); i < n; i++) {
-    buffer[i] = latent_out[i / BUFFERSIZE];
+void WaVAE_ENCODER::getBuffer(float **buffer, int n_sample, int n_channel) {
+  if (z_available) {
+    for (int i(0); i < n_sample; i++) {
+      for (int l(0); l < N_LATENT; l++) {
+        buffer[l][i] = latent_out[l];
+      }
+    }
+  } else {
+    for (int i(0); i < n_sample; i++) {
+      for (int l(0); l < N_LATENT; l++) {
+        buffer[l][i] = 0;
+      }
+    }
   }
 }
 

@@ -16,8 +16,7 @@ class Vanilla(nn.Module):
                              use_cached_padding=use_cached_padding)
 
     def forward(self, x):
-        with torch.no_grad():
-            S = self.melencoder(x)
+        S = self.melencoder(x)
         y, mean_y, logvar_y, mean_z, logvar_z = self.topvae(S)
         return y, mean_y, logvar_y, mean_z, logvar_z
 
