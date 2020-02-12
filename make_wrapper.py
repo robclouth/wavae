@@ -15,6 +15,19 @@ config_melgan = ".".join(path.join(ROOT, "melgan", "config").split("/"))
 config_vanilla = ".".join(path.join(ROOT, "vanilla", "config").split("/"))
 
 
+class BufferSTFT(nn.Module):
+    def __init__(self, buffer_size, hop_length):
+        super().__init__()
+        buffer = torch.zeros(1, 2048 + hop_length)
+        self.register_buffer("buffer", buffer)
+        self.buffer_size = buffer_size
+
+    def forward(self, x):
+        self.buffer = torch.roll(self.buffer, -self.buffer_size, -1)
+        self.buffer[:, -self.buffer_size:] = x
+        return self.buffer
+
+
 class Wrapper(nn.Module):
     def __init__(self):
         super().__init__()
@@ -55,81 +68,37 @@ class Wrapper(nn.Module):
         state_dict.update(pretrained_state_dict)
         self.vanilla.load_state_dict(state_dict)
 
+        self.stft_buffer = torch.jit.script(
+            BufferSTFT(config.BUFFER_SIZE, config.HOP_LENGTH))
+
+        if config.USE_CACHED_PADDING:
+            self.vanilla.topvae.decoder.allow_spreading()
+            self.melgan.decoder.allow_spreading()
+
     def forward(self, x):
         y, mean_y, logvar_y, mean_z, logvar_z = self.vanilla(x)
         rec_waveform = self.melgan(y, mel_encoded=True)
-
         z = torch.randn_like(mean_z) * torch.exp(logvar_z) + mean_z
-
         return rec_waveform, z
 
-
-class BufferSTFT(nn.Module):
-    def __init__(self, buffer_size, hop_length):
-        super().__init__()
-        buffer = torch.zeros(1, 2048 + hop_length)
-        self.register_buffer("buffer", buffer)
-        self.buffer_size = buffer_size
-
-    def forward(self, x):
-        self.buffer = torch.roll(self.buffer, -self.buffer_size, -1)
-        self.buffer[:, -self.buffer_size:] = x
-        return self.buffer
-
-
-class MelEncoderWrapper(nn.Module):
-    def __init__(self, wrapper):
-        super().__init__()
-        self.wrapper = wrapper.vanilla
-        self.buffer = torch.jit.script(
-            BufferSTFT(config.BUFFER_SIZE, config.HOP_LENGTH))
-
-    def forward(self, x):
+    @torch.jit.export
+    def encode(self, x):
         if config.USE_CACHED_PADDING:
-            x = self.buffer(x)
-        mel = self.wrapper.melencoder(x)
-        return mel
-
-
-class EncoderWrapper(nn.Module):
-    def __init__(self, wrapper):
-        super().__init__()
-        self.wrapper = wrapper.vanilla
-
-    def forward(self, x):
-        z = self.wrapper.topvae.encode(x)[1]
+            x = self.stft_buffer(x)
+        mel = self.vanilla.melencoder(x)
+        z = self.vanilla.topvae.encode(mel)[1]
         return z
 
-
-class DecoderWrapper(nn.Module):
-    def __init__(self, wrapper):
-        super().__init__()
-        self.wrapper = wrapper
-
-        if config.USE_CACHED_PADDING:
-            self.wrapper.vanilla.topvae.decoder.allow_spreading()
-            self.wrapper.melgan.decoder.allow_spreading()
-
-    def forward(self, z):
-        mel = self.wrapper.vanilla.topvae.decode(z)[0]
-        waveform = self.wrapper.melgan(mel, mel_encoded=True)
+    @torch.jit.export
+    def decode(self, z):
+        mel = self.vanilla.topvae.decode(z)[0]
+        waveform = self.melgan(mel, mel_encoded=True)
         return waveform
 
 
 if __name__ == "__main__":
-    print("Building model... ", end="")
     wrapper = Wrapper()
     wrapper.eval()
-
-    melencoder = MelEncoderWrapper(wrapper)
-    melencoder.eval()
-
-    encoder = EncoderWrapper(wrapper)
-    encoder.eval()
-
-    decoder = DecoderWrapper(wrapper)
-    decoder.eval()
-    print(colored("Success!", "green"))
 
     if config.USE_CACHED_PADDING:
         N = config.BUFFER_SIZE
@@ -139,28 +108,15 @@ if __name__ == "__main__":
     input_waveform = torch.randn(1, N)
 
     # CHECK THAT EVERYTHING WORKS
-    print("Checking melencoder... ", end="")
-    mel = melencoder(input_waveform)[..., :N //
-                                     melencoder.wrapper.melencoder.hop]
-    print(colored(f"melencoder is working, out shape {mel.shape}", "green"))
+    print("Testing wrapper...")
+    print("\tencoding waveform... ", end="")
+    z = wrapper.encode(input_waveform)
+    print(colored(f"shape {z.shape}", "green"))
+    print("\tdecoding latent... ", end="")
+    y = wrapper.decode(z)
+    print(colored(f"shape {y.shape}", "green"))
 
-    print("Checking encoder... ", end="")
-    input_z = encoder(mel)
-    print(colored(f"encoder is working, out shape {input_z.shape}", "green"))
+    print(colored("Successfuly reconstructed input !", "green"))
+    print("Tracing model...")
 
-    print("Checking decoder... ", end="")
-    rec = decoder(input_z)
-    print(colored(f"decoder is working, out shape {rec.shape}", "green"))
-
-    # TRACING TIME
-    torch.jit.trace(melencoder, input_waveform, check_trace=False).save(
-        path.join(ROOT, "melencoder_trace.ts"))
-
-    torch.jit.trace(encoder, mel,
-                    check_trace=False).save(path.join(ROOT,
-                                                      "encoder_trace.ts"))
-    torch.jit.trace(decoder, input_z,
-                    check_trace=False).save(path.join(ROOT,
-                                                      "decoder_trace.ts"))
-
-    print("Traced wrapper created !")
+    torch.jit.trace(wrapper, input_waveform)
