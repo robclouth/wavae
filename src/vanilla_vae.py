@@ -119,6 +119,11 @@ class TopVAE(nn.Module):
         y = torch.randn_like(mean) * torch.exp(logvar) + mean
         return y, mean, logvar
 
+    def deterministic_decode(self, z):
+        rec = self.decoder(z)
+        mean = torch.split(rec, self.channels[0], 1)[0]
+        return torch.sigmoid(mean)
+
     def forward(self, x):
         z, mean_z, logvar_z = self.encode(x)
         y, mean_y, logvar_y = self.decode(z)
