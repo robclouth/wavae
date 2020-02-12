@@ -1,12 +1,19 @@
+import sounddevice as sd
 import torch
 torch.set_grad_enabled(False)
-import matplotlib.pyplot as plt
-from src import get_model, config
-config.parse_args()
+import librosa as li
+from time import time
+from tqdm import tqdm
 
-model = get_model()
-model.topvae.decoder.allow_spreading()
-print(model)
-x = torch.randn(1, 2**14)
-print(x.shape)
-y, mean_y, logvar_y, mean_z, logvar_z = model(x)
+encoder = torch.jit.load("runs/alexander/encoder_trace.ts").cuda()
+decoder = torch.jit.load("runs/alexander/decoder_trace.ts").cuda()
+
+x, sr = li.load("wav/zelda_cropped.wav", 16000)
+x = x.reshape(-1, 512)
+
+y = []
+
+for elm in tqdm(x):
+    elm = torch.from_numpy(elm).float().reshape(1, -1).cuda()
+    z = encoder(elm)
+    y.append(decoder(z))
