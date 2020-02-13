@@ -43,7 +43,7 @@ class config(Config):
 
     # INCREMENTAL GENERATION
     USE_CACHED_PADDING = False
-    BUFFER_SIZE = 8192
+    BUFFER_SIZE = 4096
 
 
 if __name__ == "__main__":
