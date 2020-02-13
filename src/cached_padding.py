@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from . import config
 
-SCRIPT = True
+SCRIPT = False
 
 
 def cache_pad(*args):
@@ -12,14 +12,24 @@ def cache_pad(*args):
         return CachedPadding(*args)
 
 
-def cache_pad_transpose(*args):
-    if SCRIPT:
-        return torch.jit.script(CachedPaddingTranspose(*args))
-    else:
-        return CachedPaddingTranspose(*args)
-
-
 class CachedPadding(nn.Module):
+    """
+    Cached padding (buffer based inference)
+
+    Replace nn.Conv1d(C,x,x,padding=P) with
+
+    nn.Sequential(
+        CachedPadding(P, C, True),
+        nn.Conv1d(C,x,x,padding=0)
+    )
+
+    And replace nn.ConvTranspose1d(C,x,2 * r,stride=r, padding=r//2) with
+
+    nn.Sequential(
+        CachedPadding(1, C, True),
+        nn.ConvTranspose1d(C,x,2 * r,stride=r, padding=r//2 + r)
+    )
+    """
     def __init__(self, padding, channels, cache=False):
         super().__init__()
 
@@ -42,29 +52,3 @@ class CachedPadding(nn.Module):
 
     def __repr__(self):
         return f"CachedPadding(padding={self.padding}, cache={self.cache})"
-
-
-class CachedPaddingTranspose(nn.Module):
-    def __init__(self, padding, channels, cache=False):
-        super().__init__()
-
-        right_pad = torch.zeros(1, channels, 2 * padding)
-        self.register_buffer("right_pad", right_pad)
-
-        self.padding = 2 * padding
-        self.cache = cache
-
-    def forward(self, x):
-        if self.cache:
-            x[..., :self.padding] += self.right_pad
-            self.right_pad = x[..., -self.padding:]
-            current = x[..., :-self.padding]
-        else:
-            current = x[..., self.padding // 2:-self.padding // 2]
-        return current
-
-    def reset(self):
-        self.right_pad.zero_()
-
-    def __repr__(self):
-        return f"CachedPaddingTranspose(padding={self.padding}, cache={self.cache})"

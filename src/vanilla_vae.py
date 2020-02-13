@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from . import config, cache_pad, cache_pad_transpose
+from . import config, cache_pad
 import numpy as np
 
 
@@ -64,12 +64,13 @@ class ConvDecoder(nn.Module):
 
             else:
                 self.convs += [
+                    cache_pad(1, self.channels[i + 1], use_cached_padding),
                     nn.ConvTranspose1d(self.channels[i + 1],
                                        self.channels[i],
                                        2 * self.ratios[i],
-                                       stride=self.ratios[i]),
-                    cache_pad_transpose(self.ratios[i] // 2, self.channels[i],
-                                        use_cached_padding)
+                                       stride=self.ratios[i],
+                                       padding=self.ratios[i] // 2 +
+                                       self.ratios[i])
                 ]
             if i:
                 self.convs += [nn.ReLU(), nn.BatchNorm1d(self.channels[i])]

@@ -5,7 +5,7 @@ from librosa.filters import mel as librosa_mel_fn
 from torch.nn.utils import weight_norm
 import numpy as np
 
-from . import config, cache_pad, cache_pad_transpose
+from . import config, cache_pad
 
 
 def weights_init(m):
@@ -70,13 +70,13 @@ class Generator(nn.Module):
         for i, r in enumerate(ratios):
             model += [
                 nn.LeakyReLU(0.2),
+                cache_pad(1, mult * ngf, use_cached_padding),
                 WNConvTranspose1d(mult * ngf,
                                   mult * ngf // 2,
                                   kernel_size=r * 2,
                                   stride=r,
-                                  output_padding=r % 2),
-                cache_pad_transpose(r // 2 + r % 2, mult * ngf // 2,
-                                    use_cached_padding)
+                                  padding=r // 2 + r,
+                                  output_padding=r % 2)
             ]
 
             for j in range(n_residual_layers):
