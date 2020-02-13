@@ -18,7 +18,7 @@ config_vanilla = ".".join(path.join(ROOT, "vanilla", "config").split("/"))
 class BufferSTFT(nn.Module):
     def __init__(self, buffer_size, hop_length):
         super().__init__()
-        buffer = torch.zeros(1, 2048 + hop_length)
+        buffer = torch.zeros(1, 2048 + 31 * hop_length)
         self.register_buffer("buffer", buffer)
         self.buffer_size = buffer_size
 
@@ -53,12 +53,6 @@ class Wrapper(nn.Module):
         pretrained_state_dict = torch.load(path.join(ROOT, "melgan",
                                                      "melgan_state.pth"),
                                            map_location="cpu")[0]
-        pretrained_state_dict = {
-            k: v
-            for k, v in pretrained_state_dict.items()
-            if ("previous_sample" not in k) and ("left_pad" not in k)
-        }
-
         state_dict = melgan.state_dict()
         state_dict.update(pretrained_state_dict)
         melgan.load_state_dict(state_dict)
@@ -72,12 +66,6 @@ class Wrapper(nn.Module):
         pretrained_state_dict = torch.load(path.join(ROOT, "vanilla",
                                                      "vanilla_state.pth"),
                                            map_location="cpu")
-        pretrained_state_dict = {
-            k: v
-            for k, v in pretrained_state_dict.items()
-            if ("previous_sample" not in k) and ("left_pad" not in k)
-        }
-
         state_dict = vanilla.state_dict()
         state_dict.update(pretrained_state_dict)
         vanilla.load_state_dict(state_dict)
@@ -95,8 +83,6 @@ class Wrapper(nn.Module):
             test_mel = torch.randn(1, config.INPUT_SIZE, 2)
             test_z = torch.randn(1, self.latent_size, 1)
 
-            # vanilla.topvae.decoder.allow_spreading()
-            # melgan.decoder.allow_spreading()
         else:
             test_wav = torch.randn(1, 8192)
             test_mel = torch.randn(1, config.INPUT_SIZE, 16)
@@ -121,7 +107,7 @@ class Wrapper(nn.Module):
                                             check_trace=False)
 
     def forward(self, x):
-        return self.decode(self.encode(x))
+        return self.decode_wav(self.decode_mel(self.encode(x)))
 
     @torch.jit.export
     def melencode(self, x):
@@ -135,17 +121,18 @@ class Wrapper(nn.Module):
         return z
 
     @torch.jit.export
-    def decode(self, z):
+    def decode_mel(self, z):
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
+        return mel
+
+    @torch.jit.export
+    def decode_wav(self, mel):
         waveform = self.trace_melgan(mel)
         return waveform
 
 
 if __name__ == "__main__":
-    if config.USE_CACHED_PADDING:
-        N = config.BUFFER_SIZE
-    else:
-        N = 8192
-
-    torch.jit.script(Wrapper()).save(path.join(ROOT, "trace_model.ts"))
+    wrapper = Wrapper()
+    print(wrapper)
+    torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))

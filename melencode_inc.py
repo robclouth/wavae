@@ -1,26 +1,28 @@
+#%%
+from src import cache_pad_transpose
 import torch
 torch.set_grad_enabled(False)
-import librosa as li
-import numpy as np
+import torch.nn as nn
 import matplotlib.pyplot as plt
 
-model = torch.jit.load("runs/alexander/trace_model.ts")
-x, sr = li.load("wav/zelda_cropped.wav", 16000)
+# %%
+conv = nn.ConvTranspose1d(1, 1, 4, stride=2, padding=1)
+x = torch.randn(1, 1, 16)
 
-x_ = x.reshape(-1, 512)
-mel = []
+y_full = conv(x)
 
-for elm in x_:
-    elm = torch.from_numpy(elm).float()
-    mel.append(model.melencode(elm.reshape(1, -1)).numpy().squeeze().T)
+x = torch.split(x, 8, -1)
+conv.padding = (0, )
+conv_pad = nn.Sequential(conv, cache_pad_transpose(1, 1, True))
+y = []
+for elm in x:
+    y.append(conv_pad(elm))
 
-mel = np.asarray(mel)
-mel = mel.reshape(-1, 128).T
+y_split = torch.cat(y, -1)
 
-mel_li = li.feature.melspectrogram(x)
+plt.plot(y_full.squeeze())
+plt.plot(y_split.squeeze())
 
-plt.subplot(121)
-plt.imshow(mel, aspect="auto", origin="lower")
-plt.subplot(122)
-plt.imshow(np.log10(mel_li + 1e-5), aspect="auto", origin="lower")
-plt.show()
+# %%
+
+# %%

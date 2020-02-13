@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from . import config, cache_pad
+from . import config, cache_pad, cache_pad_transpose
 import numpy as np
 
 
@@ -67,8 +67,9 @@ class ConvDecoder(nn.Module):
                     nn.ConvTranspose1d(self.channels[i + 1],
                                        self.channels[i],
                                        2 * self.ratios[i],
-                                       stride=self.ratios[i],
-                                       padding=self.ratios[i] // 2),
+                                       stride=self.ratios[i]),
+                    cache_pad_transpose(self.ratios[i] // 2, self.channels[i],
+                                        use_cached_padding)
                 ]
             if i:
                 self.convs += [nn.ReLU(), nn.BatchNorm1d(self.channels[i])]
@@ -78,11 +79,6 @@ class ConvDecoder(nn.Module):
     def forward(self, x):
         x = self.convs(x)
         return x
-
-    def allow_spreading(self):
-        for elm in self.convs:
-            if elm.__class__.__name__ == "ConvTranspose1d":
-                elm.padding = (0, )
 
 
 class TopVAE(nn.Module):

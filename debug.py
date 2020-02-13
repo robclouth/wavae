@@ -1,35 +1,25 @@
-import sounddevice as sd
+#%%
 import torch
 torch.set_grad_enabled(False)
-import librosa as li
-from time import time
-from tqdm import tqdm
-import numpy as np
 import matplotlib.pyplot as plt
 
-model = torch.jit.load("runs/alexander/trace_model.ts").cuda()
+model_full = torch.jit.load("runs/dry/trace_model_feedforward.ts")
+model_incremental = torch.jit.load("runs/dry/trace_model.ts")
 
-x, sr = li.load("wav/zelda_cropped.wav", 16000)
-x = x[:2 * sr]
+# %%
 
-if len(x) % 512:
-    x = x[:-(len(x) % 512)]
+x = torch.randn(1, 2**16)
 
-x = x.reshape(-1, 512)
-y = []
+y_full = model_full(x)
 
-for elm in tqdm(x):
-    elm = torch.from_numpy(elm).float().cuda().reshape(1, -1)
-    y.append(model(elm).cpu().squeeze().numpy())
+x = torch.split(x, 8192, -1)
 
-sample_N = y[0].shape[0]
-hop = (sample_N - 512) // 2 + 512
-N = sample_N + (len(y) - 1) * hop
+y_split = torch.cat([model_incremental(elm) for elm in x], -1)
 
-out = np.zeros(N)
+# %%
 
-for i, elm in enumerate(y):
-    out[i * hop:i * hop + sample_N] += elm
+plt.plot(y_full.squeeze())
+plt.plot(y_split.squeeze())
+plt.xlim([8100, 8200])
 
-sd.play(out, sr)
-sd.wait()
+# %%
