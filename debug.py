@@ -16,7 +16,7 @@ class ConvNet(nn.Module):
             nn.Conv1d(1, 1, 9, 2),
             cache_pad(2, 1, True),
             nn.Conv1d(1, 1, 5, 2),
-            cache_pad(1, 1, False),
+            cache_pad(1, 1, True),
             nn.ConvTranspose1d(1, 1, 2 * r, r, padding=r // 2 + r),
         ])
 
@@ -42,14 +42,14 @@ x = torch.randn(1, 1, 128)
 y_full = model(x)
 model.reset()
 
-y_split = torch.cat([model(elm) for elm in torch.split(x, 8, -1)], -1)
+y_split = torch.cat([model(elm) for elm in torch.split(x, 16, -1)], -1)
 
 print(y_full.shape)
 print(y_split.shape)
 
 plt.plot(y_full.squeeze())
 plt.plot(y_split.squeeze())
-# %%
+plt.xlim([200, 400])
 
 # %%
 

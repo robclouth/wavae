@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from . import config
 
-SCRIPT = False
+SCRIPT = True
 
 
 def cache_pad(*args):
