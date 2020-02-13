@@ -2,6 +2,7 @@
 #include "m_pd.h"
 #include <dlfcn.h>
 #include <iostream>
+#define LATENT_NUMBER 16
 
 static t_class *wavae_encoder_tilde_class;
 
@@ -11,25 +12,21 @@ typedef struct _wavae_encoder_tilde {
 
   DeepAudioEngine *model;
 
-  t_outlet *x_out[16];
+  t_outlet *x_out[LATENT_NUMBER];
 } t_wavae_encoder_tilde;
 
 t_int *wavae_encoder_tilde_perform(t_int *w) {
-  // IN OUT INITIALIZATION
-  t_wavae_encoder_tilde *x = (t_wavae_encoder_tilde *)(w[1]);
-  t_sample *in_buffer = (t_sample *)w[2];
-  t_sample *outs[16];
-  for (int i(0); i < 16; i++) {
-    outs[i] = (t_sample *)(w[i + 3]);
+
+  t_wavae_encoder_tilde *x = (t_wavae_encoder_tilde *)w[1];
+  float *input_buffer = (float *)w[2];
+  float *output_buffer[LATENT_NUMBER];
+  for (int i(0); i < LATENT_NUMBER; i++) {
+    output_buffer[i] = (float *)w[i + 3];
   }
-  int n = (int)(w[19]);
+  int n = (int)w[LATENT_NUMBER + 3];
+  x->model->perform(&input_buffer, output_buffer, 1, LATENT_NUMBER, n);
 
-  // UPLOAD BUFFER TO MODEL
-  x->model->addBuffer(&in_buffer, n, 1);
-
-  // DOWNLOAD DATA FROM MODEL
-  x->model->getBuffer(outs, n, 16);
-  return (w + 20);
+  return (w + LATENT_NUMBER + 4);
 }
 
 void wavae_encoder_tilde_dsp(t_wavae_encoder_tilde *x, t_signal **sp) {
@@ -41,7 +38,7 @@ void wavae_encoder_tilde_dsp(t_wavae_encoder_tilde *x, t_signal **sp) {
 }
 
 void wavae_encoder_tilde_free(t_wavae_encoder_tilde *x) {
-  for (int i(0); i < 16; i++) {
+  for (int i(0); i < LATENT_NUMBER; i++) {
     outlet_free(x->x_out[i]);
   }
 }
@@ -50,8 +47,8 @@ void *wavae_encoder_tilde_new(t_floatarg *f) {
   t_wavae_encoder_tilde *x =
       (t_wavae_encoder_tilde *)pd_new(wavae_encoder_tilde_class);
 
-  // INITIALIZATION OF THE 16 LATENT OUTPUTS
-  for (int i(0); i < 16; i++) {
+  // INITIALIZATION OF THE LATENT_NUMBER LATENT OUTPUTS
+  for (int i(0); i < LATENT_NUMBER; i++) {
     x->x_out[i] = outlet_new(&x->x_obj, &s_signal);
   }
 
@@ -61,14 +58,14 @@ void *wavae_encoder_tilde_new(t_floatarg *f) {
     std::cout << "Failed to load libwavae..." << std::endl;
   }
 
-  void *symbol = dlsym(hndl, "build_encoder");
+  void *symbol = dlsym(hndl, "get_encoder");
   if (!symbol) {
     std::cout << "Could not find symbol..." << std::endl;
   }
   auto build_encoder = reinterpret_cast<DeepAudioEngine *(*)()>(symbol);
 
   x->model = (*build_encoder)();
-  int error = x->model->load("alexander");
+  int error = x->model->load("trace_model.ts");
 
   if (error) {
     std::cout << "could not load model" << std::endl;

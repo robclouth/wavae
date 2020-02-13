@@ -107,7 +107,7 @@ class Wrapper(nn.Module):
                                             check_trace=False)
 
     def forward(self, x):
-        return self.decode_wav(self.decode_mel(self.encode(x)))
+        return self.decode(self.encode(x))
 
     @torch.jit.export
     def melencode(self, x):
@@ -121,13 +121,9 @@ class Wrapper(nn.Module):
         return z
 
     @torch.jit.export
-    def decode_mel(self, z):
+    def decode(self, z):
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
-        return mel
-
-    @torch.jit.export
-    def decode_wav(self, mel):
         waveform = self.trace_melgan(mel)
         return waveform
 
