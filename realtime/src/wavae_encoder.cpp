@@ -1,8 +1,14 @@
-#include "../../libwavae/src/deepAudioEngine.h"
+#include "../libwavae/src/deepAudioEngine.h"
 #include "m_pd.h"
+#include <cstring>
 #include <dlfcn.h>
 #include <iostream>
+#include <stdio.h>
+#include <thread>
+#include <vector>
+
 #define LATENT_NUMBER 16
+#define BUFFER_SIZE 4096
 
 static t_class *wavae_encoder_tilde_class;
 
@@ -11,20 +17,49 @@ typedef struct _wavae_encoder_tilde {
   t_sample f;
 
   DeepAudioEngine *model;
+  std::vector<float *> in_buffer, out_buffer;
+  std::thread *worker;
 
   t_outlet *x_out[LATENT_NUMBER];
 } t_wavae_encoder_tilde;
 
+void perform(t_wavae_encoder_tilde *x, int n_signal) {
+  x->model->perform(x->in_buffer, x->out_buffer, x->in_buffer.size(),
+                    x->out_buffer.size(), n_signal);
+}
+
 t_int *wavae_encoder_tilde_perform(t_int *w) {
 
   t_wavae_encoder_tilde *x = (t_wavae_encoder_tilde *)w[1];
-  float *input_buffer = (float *)w[2];
-  float *output_buffer[LATENT_NUMBER];
-  for (int i(0); i < LATENT_NUMBER; i++) {
-    output_buffer[i] = (float *)w[i + 3];
+  std::vector<float *> input, output;
+
+  // WAIT FOR THREAD TO END
+  if (x->worker) {
+    x->worker->join();
   }
-  int n = (int)w[LATENT_NUMBER + 3];
-  x->model->perform(&input_buffer, output_buffer, 1, LATENT_NUMBER, n);
+
+  // PUT INPUT AND OUT BUFFER INTO VECTORS
+  input.push_back((float *)(w[2]));
+  for (int i(0); i < LATENT_NUMBER; i++) {
+    output.push_back((float *)(w[i + 3]));
+  }
+
+  int n = (int)(w[LATENT_NUMBER + 3]);
+
+  // COPY PREVIOUS COMPUTATIONS
+  for (int d(0); d < LATENT_NUMBER; d++) {
+    for (int t(0); t < n; t++) {
+      output[d][t] = x->out_buffer[d][t];
+    }
+  }
+
+  // COPY CURRENT BUFFER INTO X
+  for (int t(0); t < n; t++) {
+    x->in_buffer[0][t] = input[0][t];
+  }
+
+  // START THREAD TO COMPUTE NEXT BUFFER
+  x->worker = new std::thread(perform, x, n);
 
   return (w + LATENT_NUMBER + 4);
 }
@@ -47,13 +82,21 @@ void *wavae_encoder_tilde_new(t_floatarg *f) {
   t_wavae_encoder_tilde *x =
       (t_wavae_encoder_tilde *)pd_new(wavae_encoder_tilde_class);
 
+  x->worker = NULL;
+
   // INITIALIZATION OF THE LATENT_NUMBER LATENT OUTPUTS
   for (int i(0); i < LATENT_NUMBER; i++) {
     x->x_out[i] = outlet_new(&x->x_obj, &s_signal);
   }
 
-  // LOAD LIBWAVAE.SO
-  void *hndl = dlopen("./libwavae.so", RTLD_LAZY);
+  // INITIALIZE BUFFER
+  x->in_buffer.push_back(new float[BUFFER_SIZE]);
+  for (int i(0); i < LATENT_NUMBER; i++) {
+    x->out_buffer.push_back(new float[BUFFER_SIZE]);
+  }
+
+  // LOAD LIBWAVAE.SO ///////////////////////////////////
+  void *hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
   if (!hndl) {
     std::cout << "Failed to load libwavae..." << std::endl;
   }
