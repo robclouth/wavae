@@ -1,16 +1,13 @@
+#%%
+from src import CachedConvTranspose1d
 import torch
-torch.set_grad_enabled(False)
-from time import time
-from tqdm import tqdm
-from src import config
 
-model = torch.jit.load("runs/dry/trace_model.ts")
+conv = CachedConvTranspose1d(1, 1, 4, 2, cache=True)
+x = torch.randn(1, 1, 16)
 
-x = torch.randn(100, config.BUFFER_SIZE)
+print(conv(x).shape)
 
-x = x.reshape(-1, config.BUFFER_SIZE)
+conv = CachedConvTranspose1d(1, 1, 4, 2, cache=False)
+x = torch.randn(1, 1, 16)
 
-print("Testing with size", config.BUFFER_SIZE)
-
-for elm in tqdm(x):
-    model(elm.reshape(1, -1))
+print(conv(x).shape)

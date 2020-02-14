@@ -129,4 +129,5 @@ class Wrapper(nn.Module):
 
 
 if __name__ == "__main__":
-    torch.jit.script(Wrapper()).save(path.join(ROOT, "trace_model.ts"))
+    wrapper = Wrapper()
+    torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))

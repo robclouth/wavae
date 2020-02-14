@@ -1,6 +1,6 @@
 from .hparams import config
 
-from .cached_padding import CachedPadding, cache_pad
+from .cached_padding import CachedConv1d, cache_pad, CachedConvTranspose1d
 
 from .gan_modules import Generator, Discriminator
 from .melencoder import MelEncoder

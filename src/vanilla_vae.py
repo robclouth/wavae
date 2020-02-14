@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from . import config, cache_pad
+from . import config, CachedConv1d, CachedConvTranspose1d
 import numpy as np
 
 
@@ -18,13 +18,12 @@ class ConvEncoder(nn.Module):
         self.convs = []
         for i in range(len(self.ratios)):
             self.convs += [
-                cache_pad(self.kernel // 2, self.channels[i],
-                          use_cached_padding),
-                nn.Conv1d(self.channels[i],
-                          self.channels[i + 1],
-                          self.kernel,
-                          padding=0,
-                          stride=self.ratios[i])
+                CachedConv1d(self.channels[i],
+                             self.channels[i + 1],
+                             self.kernel,
+                             padding=self.kernel // 2,
+                             stride=self.ratios[i],
+                             cache=use_cached_padding)
             ]
             if i != len(self.ratios) - 1:
                 self.convs += [nn.ReLU(), nn.BatchNorm1d(self.channels[i + 1])]
@@ -56,21 +55,21 @@ class ConvDecoder(nn.Module):
         for i in range(len(self.ratios))[::-1]:
             if self.ratios[i] == 1:
                 self.convs += [
-                    cache_pad(self.kernel // 2, self.channels[i + 1],
-                              use_cached_padding),
-                    nn.Conv1d(self.channels[i + 1], self.channels[i],
-                              self.kernel)
+                    CachedConv1d(self.channels[i + 1],
+                                 self.channels[i],
+                                 self.kernel,
+                                 stride=1,
+                                 padding=self.kernel // 2,
+                                 cache=use_cached_padding)
                 ]
 
             else:
                 self.convs += [
-                    cache_pad(1, self.channels[i + 1], use_cached_padding),
-                    nn.ConvTranspose1d(self.channels[i + 1],
-                                       self.channels[i],
-                                       2 * self.ratios[i],
-                                       stride=self.ratios[i],
-                                       padding=self.ratios[i] // 2 +
-                                       self.ratios[i])
+                    CachedConvTranspose1d(self.channels[i + 1],
+                                          self.channels[i],
+                                          2 * self.ratios[i],
+                                          stride=self.ratios[i],
+                                          cache=use_cached_padding)
                 ]
             if i:
                 self.convs += [nn.ReLU(), nn.BatchNorm1d(self.channels[i])]
