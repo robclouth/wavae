@@ -10,7 +10,9 @@ from . import config, CachedConvTranspose1d, CachedConv1d
 
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
+    if classname == "CachedConv1d" or classname == "CachedConvTranspose1d":
+        m.conv.weight.data.normal_(0.0, 0.02)
+    elif classname.find("Conv") != -1:
         m.weight.data.normal_(0.0, 0.02)
     elif classname.find("BatchNorm2d") != -1:
         m.weight.data.normal_(1.0, 0.02)
@@ -26,13 +28,12 @@ def WNConvTranspose1d(*args, **kwargs):
 
 
 class ResnetBlock(nn.Module):
-    def __init__(self, dim, dilation=1):
+    def __init__(self, dim, dilation=1, use_cached_padding=False):
         super().__init__()
         self.block = nn.Sequential(
             nn.LeakyReLU(0.2),
-            cache_pad(dilation, dim, True)
-            if config.USE_CACHED_PADDING else nn.ReflectionPad1d(dilation),
-            WNConv1d(dim, dim, kernel_size=3, dilation=dilation),
+            CachedConv1d(dim, dim, 3, 1, dilation, dilation,
+                         use_cached_padding, "reflect", True),
             nn.LeakyReLU(0.2),
             WNConv1d(dim, dim, kernel_size=1),
         )
@@ -40,9 +41,6 @@ class ResnetBlock(nn.Module):
         self.dilation = dilation
 
     def forward(self, x):
-        # print(x.shape)
-        # print(self.block)
-        # print(self.shortcut)
         blockout = self.block(x)
         shortcut = self.shortcut(x)
         return blockout + shortcut
@@ -61,34 +59,47 @@ class Generator(nn.Module):
         mult = int(2**len(ratios))
 
         model = [
-            cache_pad(3, input_size, True)
-            if use_cached_padding else nn.ReflectionPad1d(3),
-            WNConv1d(input_size, mult * ngf, kernel_size=7, padding=0),
+            CachedConv1d(input_size,
+                         mult * ngf,
+                         7,
+                         1,
+                         3,
+                         cache=use_cached_padding,
+                         pad_mode="reflect",
+                         weight_norm=True)
         ]
 
         # Upsample to raw audio scale
         for i, r in enumerate(ratios):
             model += [
                 nn.LeakyReLU(0.2),
-                cache_pad(1, mult * ngf, True),
-                WNConvTranspose1d(mult * ngf,
-                                  mult * ngf // 2,
-                                  kernel_size=r * 2,
-                                  stride=r,
-                                  padding=r // 2 + r,
-                                  output_padding=r % 2)
+                CachedConvTranspose1d(mult * ngf,
+                                      mult * ngf // 2,
+                                      r * 2,
+                                      r,
+                                      cache=use_cached_padding,
+                                      weight_norm=True)
             ]
 
             for j in range(n_residual_layers):
-                model += [ResnetBlock(mult * ngf // 2, dilation=3**j)]
+                model += [
+                    ResnetBlock(mult * ngf // 2,
+                                dilation=3**j,
+                                use_cached_padding=use_cached_padding)
+                ]
 
             mult //= 2
 
         model += [
             nn.LeakyReLU(0.2),
-            cache_pad(3, ngf, True)
-            if use_cached_padding else nn.ReflectionPad1d(3),
-            WNConv1d(ngf, 1, kernel_size=7, padding=0),
+            CachedConv1d(ngf,
+                         1,
+                         7,
+                         1,
+                         3,
+                         cache=use_cached_padding,
+                         pad_mode="reflect",
+                         weight_norm=True),
             nn.Tanh(),
         ]
 

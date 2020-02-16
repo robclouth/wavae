@@ -40,6 +40,8 @@ class melGAN(nn.Module):
         else:
             mel = self.encoder(x)
 
+        print(mel.shape)
+
         y = self.decoder(mel)
         return y
 

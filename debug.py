@@ -1,13 +1,6 @@
-#%%
-from src import CachedConvTranspose1d
 import torch
+from src import get_model, config
+config.parse_args()
 
-conv = CachedConvTranspose1d(1, 1, 4, 2, cache=True)
-x = torch.randn(1, 1, 16)
-
-print(conv(x).shape)
-
-conv = CachedConvTranspose1d(1, 1, 4, 2, cache=False)
-x = torch.randn(1, 1, 16)
-
-print(conv(x).shape)
+x = torch.randn(1, 8192)
+model = get_model()

@@ -30,9 +30,10 @@ class CachedPadding(nn.Module):
         nn.ConvTranspose1d(C,x,2 * r,stride=r, padding=r//2 + r)
     )
     """
-    def __init__(self, padding, channels, cache=False):
+    def __init__(self, padding, channels, cache=False, pad_mode="constant"):
         super().__init__()
         self.padding = padding
+        self.pad_mode = pad_mode
 
         left_pad = torch.zeros(1, channels, padding)
         self.register_buffer("left_pad", left_pad)
@@ -45,7 +46,7 @@ class CachedPadding(nn.Module):
             self.left_pad = padded_x[..., -self.padding:]
         else:
             padded_x = nn.functional.pad(
-                x, (self.padding // 2, self.padding // 2))
+                x, (self.padding // 2, self.padding // 2), mode=self.pad_mode)
         return padded_x
 
     def reset(self):
@@ -63,14 +64,18 @@ class CachedConv1d(nn.Module):
                  stride,
                  padding,
                  dilation=(1, ),
-                 cache=False):
+                 cache=False,
+                 pad_mode="constant",
+                 weight_norm=False):
         super().__init__()
-        self.pas = cache_pad(2 * padding, in_chan, cache)
+        self.pad = cache_pad(2 * padding, in_chan, cache, pad_mode)
         self.conv = nn.Conv1d(in_chan,
                               out_chan,
                               kernel,
                               stride,
                               dilation=dilation)
+        if weight_norm:
+            self.conv = nn.utils.weight_norm(self.conv)
 
     def forward(self, x):
         x = self.pad(x)
@@ -85,17 +90,21 @@ class CachedConvTranspose1d(nn.Module):
                  kernel,
                  stride,
                  dilation=(1, ),
-                 cache=False):
+                 cache=False,
+                 pad_mode="constant",
+                 weight_norm=False):
         super().__init__()
         assert kernel == 2 * stride, "WESH"
         self.cache = cache
         self.stride = stride
-        self.pad = cache_pad(1, in_chan, cache)
+        self.pad = cache_pad(1, in_chan, cache, pad_mode)
         self.conv = nn.ConvTranspose1d(in_chan,
                                        out_chan,
                                        kernel_size=kernel,
                                        stride=stride,
                                        padding=0)
+        if weight_norm:
+            self.conv = nn.utils.weight_norm(self.conv)
 
     def forward(self, x):
         if self.cache:
