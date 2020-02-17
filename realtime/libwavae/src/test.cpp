@@ -12,20 +12,15 @@ int main(int argc, char const *argv[]) {
   DeepAudioEngine *decoder = new wavae::Decoder;
   error = decoder->load("trace_model.ts");
 
-  std::vector<float *> input_buffer, latent_buffer, output_buffer;
-
-  input_buffer.push_back(new float[4096]);
-  output_buffer.push_back(new float[4096]);
-
-  for (int i(0); i < encoder->getOutputChannelNumber(); i++) {
-    latent_buffer.push_back(new float[4096]);
-  }
+  float *inbuffer = new float[BUFFERSIZE];
+  float *outbuffer = new float[BUFFERSIZE];
+  float *zbuffer = new float[LATENT_NUMBER * BUFFERSIZE / DIM_REDUCTION_FACTOR];
 
   // LOOP TEST
   for (int i(0); i < 100; i++) {
     std::cout << i << std::endl;
-    encoder->perform(input_buffer, latent_buffer, 1, 16, 4096);
-    decoder->perform(latent_buffer, output_buffer, 16, 1, 4096);
+    encoder->perform(inbuffer, zbuffer);
+    decoder->perform(zbuffer, outbuffer);
   }
 
   return 0;

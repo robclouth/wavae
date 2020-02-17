@@ -6,33 +6,17 @@
 
 wavae::Encoder::Encoder() { at::init_num_threads(); }
 
-void wavae::Encoder::perform(std::vector<float *> in_buffer,
-                             std::vector<float *> out_buffer, int n_in_channel,
-                             int n_out_channel, int n_signal) {
+void wavae::Encoder::perform(float *in_buffer, float *out_buffer) {
   torch::NoGradGuard no_grad;
-  // CREATE INPUT
-  torch::Tensor buffer = torch::zeros({n_signal});
 
-  for (int i(0); i < n_signal; i++) {
-    buffer[i] = in_buffer[0][i];
-  }
+  std::vector<torch::jit::IValue> input;
+  input.push_back(
+      torch::from_blob(in_buffer, {1, BUFFERSIZE}).clone().to(torch::kFloat32));
 
-  buffer = buffer.unsqueeze(0);
-  std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(buffer);
+  auto out =
+      model.get_method("encode")(std::move(input)).toTensor().data<float>();
 
-  // ENCODE INPUT
-  auto out = model.get_method("encode")(std::move(inputs))
-                 .toTensor()
-                 .squeeze(0)
-                 .data<float>();
-
-  // UPLOAD LATENT PATH TO BUFFER
-  for (int c(0); c < LATENT_NUMBER; c++) {
-    for (int i(0); i < n_signal; i++) {
-      out_buffer[c][i] = out[(c * n_signal + i) / DIM_REDUCTION_FACTOR];
-    }
-  }
+  memcpy(out_buffer, out, LATENT_NUMBER * BUFFERSIZE / DIM_REDUCTION_FACTOR);
 }
 
 int wavae::Encoder::load(std::string name) {
@@ -45,43 +29,25 @@ int wavae::Encoder::load(std::string name) {
   }
 }
 
-int wavae::Encoder::getInputChannelNumber() { return 1; }
-
-int wavae::Encoder::getOutputChannelNumber() { return LATENT_NUMBER; }
-
 // DECODER /////////////////////////////////////////////////////////
 
 wavae::Decoder::Decoder() { at::init_num_threads(); }
 
-void wavae::Decoder::perform(std::vector<float *> in_buffer,
-                             std::vector<float *> out_buffer, int n_in_channel,
-                             int n_out_channel, int n_signal) {
+void wavae::Decoder::perform(float *in_buffer, float *out_buffer) {
+
   torch::NoGradGuard no_grad;
 
-  // CREATE INPUT
-  torch::Tensor buffer =
-      torch::zeros({n_in_channel, n_signal / DIM_REDUCTION_FACTOR});
+  std::vector<torch::jit::IValue> input;
+  input.push_back(
+      torch::from_blob(in_buffer,
+                       {1, LATENT_NUMBER, BUFFERSIZE / DIM_REDUCTION_FACTOR})
+          .clone()
+          .to(torch::kFloat32));
 
-  for (int c(0); c < n_in_channel; c++) {
-    for (int i(0); i < n_signal / DIM_REDUCTION_FACTOR; i++) {
-      buffer[c][i] = in_buffer[c][i * DIM_REDUCTION_FACTOR];
-    }
-  }
+  auto out =
+      model.get_method("decode")(std::move(input)).toTensor().data<float>();
 
-  buffer = buffer / DIM_REDUCTION_FACTOR;
-  buffer = buffer.unsqueeze(0);
-  std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(buffer);
-
-  // DECODE INPUT
-
-  auto out = model.get_method("decode")(std::move(inputs))
-                 .toTensor()
-                 .squeeze()
-                 .data<float>();
-
-  // UPLOAD WAVEFORM TO BUFFER
-  memcpy(out_buffer[0], out, n_signal * sizeof(float));
+  memcpy(out_buffer, out, BUFFERSIZE);
 }
 
 int wavae::Decoder::load(std::string name) {
@@ -93,9 +59,6 @@ int wavae::Decoder::load(std::string name) {
     return 1;
   }
 }
-int wavae::Decoder::getInputChannelNumber() { return LATENT_NUMBER; }
-
-int wavae::Decoder::getOutputChannelNumber() { return 1; }
 
 extern "C" {
 DeepAudioEngine *get_encoder() { return new wavae::Encoder; }

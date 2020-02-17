@@ -12,11 +12,8 @@ namespace wavae {
 class Encoder : public DeepAudioEngine {
 public:
   Encoder();
-  void perform(std::vector<float *> in_buffer, std::vector<float *> out_buffer,
-               int n_in_channel, int n_out_channel, int n_signal);
+  void perform(float *in_buffer, float *out_buffer);
   int load(std::string name);
-  int getInputChannelNumber();
-  int getOutputChannelNumber();
 
 protected:
   torch::jit::script::Module model;
@@ -25,11 +22,8 @@ protected:
 class Decoder : public DeepAudioEngine {
 public:
   Decoder();
-  void perform(std::vector<float *> in_buffer, std::vector<float *> out_buffer,
-               int n_in_channel, int n_out_channel, int n_signal);
+  void perform(float *in_buffer, float *out_buffer);
   int load(std::string name);
-  int getInputChannelNumber();
-  int getOutputChannelNumber();
 
 protected:
   torch::jit::script::Module model;
