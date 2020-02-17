@@ -5,7 +5,7 @@ from librosa.filters import mel as librosa_mel_fn
 from torch.nn.utils import weight_norm
 import numpy as np
 
-from . import config, CachedConvTranspose1d, CachedConv1d
+from . import config, CachedConvTranspose1d, CachedConv1d, cache_pad
 
 
 def weights_init(m):
@@ -39,10 +39,17 @@ class ResnetBlock(nn.Module):
         )
         self.shortcut = WNConv1d(dim, dim, kernel_size=1)
         self.dilation = dilation
+        self.use_cached_padding = use_cached_padding
+        self.residual_padding = cache_pad(dilation,
+                                          dim,
+                                          cache=use_cached_padding,
+                                          crop=True)
 
     def forward(self, x):
         blockout = self.block(x)
         shortcut = self.shortcut(x)
+        if self.use_cached_padding:
+            shortcut = self.residual_padding(shortcut)
         return blockout + shortcut
 
 

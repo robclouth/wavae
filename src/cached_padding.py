@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 from . import config
 
-SCRIPT = False
+SCRIPT = True
 
 
-def cache_pad(*args):
+def cache_pad(*args, **kwargs):
     if SCRIPT:
-        return torch.jit.script(CachedPadding(*args))
+        return torch.jit.script(CachedPadding(*args, **kwargs))
     else:
-        return CachedPadding(*args)
+        return CachedPadding(*args, **kwargs)
 
 
 class CachedPadding(nn.Module):
@@ -30,7 +30,12 @@ class CachedPadding(nn.Module):
         nn.ConvTranspose1d(C,x,2 * r,stride=r, padding=r//2 + r)
     )
     """
-    def __init__(self, padding, channels, cache=False, pad_mode="constant"):
+    def __init__(self,
+                 padding,
+                 channels,
+                 cache=False,
+                 pad_mode="constant",
+                 crop=False):
         super().__init__()
         self.padding = padding
         self.pad_mode = pad_mode
@@ -39,11 +44,14 @@ class CachedPadding(nn.Module):
         self.register_buffer("left_pad", left_pad)
 
         self.cache = cache
+        self.crop = crop
 
     def forward(self, x):
         if self.cache:
             padded_x = torch.cat([self.left_pad, x], -1)
             self.left_pad = padded_x[..., -self.padding:]
+            if self.crop:
+                padded_x = padded_x[..., :-(self.padding)]
         else:
             padded_x = nn.functional.pad(
                 x, (self.padding // 2, self.padding // 2), mode=self.pad_mode)
