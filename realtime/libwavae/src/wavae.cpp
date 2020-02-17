@@ -16,12 +16,12 @@ void wavae::Encoder::perform(std::vector<float *> in_buffer,
   for (int i(0); i < n_signal; i++) {
     buffer[i] = in_buffer[0][i];
   }
+
   buffer = buffer.unsqueeze(0);
   std::vector<torch::jit::IValue> inputs;
   inputs.push_back(buffer);
 
   // ENCODE INPUT
-
   auto out = model.get_method("encode")(std::move(inputs))
                  .toTensor()
                  .squeeze(0)
