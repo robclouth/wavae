@@ -4,8 +4,8 @@ patch = []
 patch.append("#N canvas 0 138 414 272 12;")
 
 # CREATE WAVAE OBJECTS
-patch.append("#X obj 10 40 wavae_encoder~;")
-patch.append("#X obj 10 90 wavae_decoder~;")
+patch.append("#X obj 10 40 encoder~;")
+patch.append("#X obj 10 90 decoder~;")
 
 # CREATE COMMENT
 patch.append("#X text 140 40 WaVAE autoencoder example patch;")
