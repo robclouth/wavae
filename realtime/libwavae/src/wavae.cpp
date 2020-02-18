@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define DEVICE torch::kCUDA
+#define CPU torch::kCPU
 
 // ENCODER /////////////////////////////////////////////////////////
 
@@ -20,7 +21,7 @@ void wavae::Encoder::perform(float *in_buffer, float *out_buffer) {
   auto out_tensor = model.get_method("encode")(std::move(input)).toTensor();
 
   out_tensor = out_tensor.repeat_interleave(DIM_REDUCTION_FACTOR);
-  out_tensor = out_tensor.to(torch::kCPU);
+  out_tensor = out_tensor.to(CPU);
 
   auto out = out_tensor.contiguous().data<float>();
 
@@ -61,7 +62,7 @@ void wavae::Decoder::perform(float *in_buffer, float *out_buffer) {
                         .reshape({-1})
                         .contiguous();
 
-  out_tensor = out_tensor.to(torch::kCPU);
+  out_tensor = out_tensor.to(CPU);
 
   auto out = out_tensor.data<float>();
 
