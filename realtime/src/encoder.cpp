@@ -9,7 +9,6 @@
 
 #define BUFFER_SIZE 4096
 #define LATENT_NUMBER 16
-#define DIM_REDUCTION BUFFER_SIZE / LATENT_SIZE
 
 #define DAE DeepAudioEngine
 
