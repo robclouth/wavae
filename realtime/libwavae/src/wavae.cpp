@@ -7,26 +7,38 @@
 
 // ENCODER /////////////////////////////////////////////////////////
 
-wavae::Encoder::Encoder() { at::init_num_threads(); }
+wavae::Encoder::Encoder() {
+  model_loaded = 0;
+  at::init_num_threads();
+}
 
 void wavae::Encoder::perform(float *in_buffer, float *out_buffer) {
   torch::NoGradGuard no_grad;
 
-  auto tensor = torch::from_blob(in_buffer, {1, BUFFERSIZE});
-  tensor = tensor.to(DEVICE);
+  if (model_loaded) {
 
-  std::vector<torch::jit::IValue> input;
-  input.push_back(tensor);
+    auto tensor = torch::from_blob(in_buffer, {1, BUFFERSIZE});
+    tensor = tensor.to(DEVICE);
 
-  auto out_tensor = model.get_method("encode")(std::move(input)).toTensor();
+    std::vector<torch::jit::IValue> input;
+    input.push_back(tensor);
 
-  out_tensor = out_tensor.repeat_interleave(DIM_REDUCTION_FACTOR);
-  out_tensor = out_tensor.to(CPU);
+    auto out_tensor = model.get_method("encode")(std::move(input)).toTensor();
 
-  auto out = out_tensor.contiguous().data<float>();
+    out_tensor = out_tensor.repeat_interleave(DIM_REDUCTION_FACTOR);
+    out_tensor = out_tensor.to(CPU);
 
-  for (int i(0); i < LATENT_NUMBER * BUFFERSIZE; i++) {
-    out_buffer[i] = out[i];
+    auto out = out_tensor.contiguous().data<float>();
+
+    for (int i(0); i < LATENT_NUMBER * BUFFERSIZE; i++) {
+      out_buffer[i] = out[i];
+    }
+
+  } else {
+
+    for (int i(0); i < LATENT_NUMBER * BUFFERSIZE; i++) {
+      out_buffer[i] = 0;
+    }
   }
 }
 
@@ -34,6 +46,7 @@ int wavae::Encoder::load(std::string name) {
   try {
     model = torch::jit::load(name);
     model.to(DEVICE);
+    model_loaded = 1;
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
@@ -43,31 +56,41 @@ int wavae::Encoder::load(std::string name) {
 
 // DECODER /////////////////////////////////////////////////////////
 
-wavae::Decoder::Decoder() { at::init_num_threads(); }
+wavae::Decoder::Decoder() {
+  model_loaded = 0;
+  at::init_num_threads();
+}
 
 void wavae::Decoder::perform(float *in_buffer, float *out_buffer) {
 
   torch::NoGradGuard no_grad;
 
-  auto tensor = torch::from_blob(in_buffer, {1, LATENT_NUMBER, BUFFERSIZE});
-  tensor =
-      tensor.reshape({1, LATENT_NUMBER, -1, DIM_REDUCTION_FACTOR}).mean(-1);
-  tensor = tensor.to(DEVICE);
+  if (model_loaded) {
 
-  std::vector<torch::jit::IValue> input;
-  input.push_back(tensor);
+    auto tensor = torch::from_blob(in_buffer, {1, LATENT_NUMBER, BUFFERSIZE});
+    tensor =
+        tensor.reshape({1, LATENT_NUMBER, -1, DIM_REDUCTION_FACTOR}).mean(-1);
+    tensor = tensor.to(DEVICE);
 
-  auto out_tensor = model.get_method("decode")(std::move(input))
-                        .toTensor()
-                        .reshape({-1})
-                        .contiguous();
+    std::vector<torch::jit::IValue> input;
+    input.push_back(tensor);
 
-  out_tensor = out_tensor.to(CPU);
+    auto out_tensor = model.get_method("decode")(std::move(input))
+                          .toTensor()
+                          .reshape({-1})
+                          .contiguous();
 
-  auto out = out_tensor.data<float>();
+    out_tensor = out_tensor.to(CPU);
 
-  for (int i(0); i < BUFFERSIZE; i++) {
-    out_buffer[i] = out[i];
+    auto out = out_tensor.data<float>();
+
+    for (int i(0); i < BUFFERSIZE; i++) {
+      out_buffer[i] = out[i];
+    }
+  } else {
+    for (int i(0); i < BUFFERSIZE; i++) {
+      out_buffer[i] = 0;
+    }
   }
 }
 
@@ -75,6 +98,7 @@ int wavae::Decoder::load(std::string name) {
   try {
     model = torch::jit::load(name);
     model.to(DEVICE);
+    model_loaded = 1;
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';

@@ -16,6 +16,7 @@ public:
   int load(std::string name);
 
 protected:
+  int model_loaded;
   torch::jit::script::Module model;
 };
 
@@ -26,6 +27,7 @@ public:
   int load(std::string name);
 
 protected:
+  int model_loaded;
   torch::jit::script::Module model;
 };
 

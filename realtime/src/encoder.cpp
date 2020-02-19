@@ -93,9 +93,13 @@ void *encoder_tilde_new(t_floatarg f) {
 
   void *hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_encoder"))();
-  x->model->load("trace_model.ts");
-
+  // x->model->load("trace_model.ts");
   return (void *)x;
+}
+
+void encoder_tilde_load(t_encoder_tilde *x, t_symbol *sym) {
+  x->model->load(sym->s_name);
+  post("encoder loaded");
 }
 
 extern "C" {
@@ -106,6 +110,9 @@ void encoder_tilde_setup(void) {
 
   class_addmethod(encoder_tilde_class, (t_method)encoder_tilde_dsp,
                   gensym("dsp"), A_CANT, 0);
+  class_addmethod(encoder_tilde_class, (t_method)encoder_tilde_load,
+                  gensym("load"), A_SYMBOL, A_NULL);
+
   CLASS_MAINSIGNALIN(encoder_tilde_class, t_encoder_tilde, f);
 }
 }
