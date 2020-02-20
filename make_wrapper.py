@@ -109,7 +109,12 @@ class Wrapper(nn.Module):
 
         self.pca = None
         if PCA:
-            self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
+            try:
+                self.pca = torch.load(path.join(ROOT, "pca.pth"))
+                print("Precomputed pca found")
+            except:
+                print("No precomputed pca found. Computing.")
+                self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
 
     def forward(self, x):
         return self.decode(self.encode(x))
@@ -124,8 +129,8 @@ class Wrapper(nn.Module):
         z = self.trace_encoder(mel)
         z = torch.split(z, self.latent_size, 1)[0]
         if self.pca is not None:
-            z = (z.permute(0, 2, 1) - self.pca[0]).matmul(self.pca[2]).permute(
-                0, 2, 1) / self.pca[1]
+            z = (z.permute(0, 2, 1) - self.pca[0]).matmul(self.pca[2]).div(
+                self.pca[1]).permute(0, 2, 1)
         return z
 
     @torch.jit.export
@@ -142,5 +147,5 @@ class Wrapper(nn.Module):
 
 if __name__ == "__main__":
     wrapper = Wrapper()
-    # print(wrapper)
     torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))
+    torch.save(wrapper.pca, path.join(ROOT, "pca.pth"))
