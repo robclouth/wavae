@@ -18,10 +18,11 @@ def compute_pca(model, lmdb_loc, batch_size):
         z.append(z_)
 
     z = torch.cat(z, 0)
-    z = z[torch.randperm(z.shape[0])].permute(1, 0)
-    z = z[:10000]
-
+    z = z[torch.randperm(z.shape[0])][:10000].permute(1, 0)
+    z[abs(z)>3]=0
+    torch.save(z, "z.pth")
     mean = torch.mean(z, -1, keepdim=True)
     std = 3 * torch.std(z)  # 99.7% of the range (normal law)
+    print(mean, std)
     U = torch.svd(z - mean, some=False)[0]
     return mean.reshape(1, 1, -1), std, U
