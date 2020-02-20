@@ -1,7 +1,7 @@
 import torch
 torch.set_grad_enabled(False)
 import torch.nn as nn
-from src import TopVAE, Generator, MelEncoder, config, get_model
+from src import TopVAE, Generator, MelEncoder, config, get_model, compute_pca
 from os import path
 import importlib
 from termcolor import colored
@@ -10,6 +10,7 @@ config.parse_args()
 
 NAME = config.NAME
 ROOT = path.join("runs", NAME)
+PCA = True
 
 config_melgan = ".".join(path.join(ROOT, "melgan", "config").split("/"))
 config_vanilla = ".".join(path.join(ROOT, "vanilla", "config").split("/"))
@@ -46,9 +47,9 @@ class Wrapper(nn.Module):
         super().__init__()
 
         # BUILDING MELGAN #################################################
-        hparams = importlib.import_module(config_melgan).config
-        hparams.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
-        melgan = get_model(hparams)
+        hparams_melgan = importlib.import_module(config_melgan).config
+        hparams_melgan.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
+        melgan = get_model(hparams_melgan)
 
         pretrained_state_dict = torch.load(path.join(ROOT, "melgan",
                                                      "melgan_state.pth"),
@@ -59,9 +60,9 @@ class Wrapper(nn.Module):
         ###################################################################
 
         # BUILDING VANILLA ################################################
-        hparams = importlib.import_module(config_vanilla).config
-        hparams.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
-        vanilla = get_model(hparams)
+        hparams_vanilla = importlib.import_module(config_vanilla).config
+        hparams_vanilla.override(USE_CACHED_PADDING=config.USE_CACHED_PADDING)
+        vanilla = get_model(hparams_vanilla)
 
         pretrained_state_dict = torch.load(path.join(ROOT, "vanilla",
                                                      "vanilla_state.pth"),
@@ -106,6 +107,10 @@ class Wrapper(nn.Module):
                                             test_mel,
                                             check_trace=False)
 
+        self.pca = None
+        if PCA:
+            self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
+
     def forward(self, x):
         return self.decode(self.encode(x))
 
@@ -118,10 +123,17 @@ class Wrapper(nn.Module):
         mel = self.melencode(x)
         z = self.trace_encoder(mel)
         z = torch.split(z, self.latent_size, 1)[0]
+        if self.pca is not None:
+            z = (z.permute(0, 2, 1) - self.pca[0]).matmul(self.pca[2]).permute(
+                0, 2, 1) / self.pca[1]
         return z
 
     @torch.jit.export
     def decode(self, z):
+        if self.pca is not None:
+            z = (z.permute(0, 2, 1).matmul(
+                self.pca[2].permute(1, 0) * self.pca[1]) +
+                 self.pca[0]).permute(0, 2, 1)
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
         waveform = self.trace_melgan(mel)
@@ -130,5 +142,5 @@ class Wrapper(nn.Module):
 
 if __name__ == "__main__":
     wrapper = Wrapper()
-    print(wrapper)
+    # print(wrapper)
     torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))
