@@ -113,6 +113,9 @@ class Wrapper(nn.Module):
                 self.pca = torch.load(path.join(ROOT, "pca.pth"))
                 print("Precomputed pca found")
             except:
+                if config.USE_CACHED_PADDING:
+                    raise Exception(
+                        "PCA should be first computed in non cache mode")
                 print("No precomputed pca found. Computing.")
                 self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
                 torch.save(self.pca, path.join(ROOT, "pca.pth"))
