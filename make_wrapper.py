@@ -112,6 +112,7 @@ class Wrapper(nn.Module):
             try:
                 self.pca = torch.load(path.join(ROOT, "pca.pth"))
                 print("Precomputed pca found")
+
             except:
                 if config.USE_CACHED_PADDING:
                     raise Exception(
@@ -119,6 +120,9 @@ class Wrapper(nn.Module):
                 print("No precomputed pca found. Computing.")
                 self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
                 torch.save(self.pca, path.join(ROOT, "pca.pth"))
+            self.register_buffer("mean", self.pca[0])
+            self.register_buffer("std", self.pca[1])
+            self.register_buffer("U", self.pca[2])
 
     def forward(self, x):
         return self.decode(self.encode(x))
@@ -133,16 +137,15 @@ class Wrapper(nn.Module):
         z = self.trace_encoder(mel)
         z = torch.split(z, self.latent_size, 1)[0]
         if self.pca is not None:
-            z = (z.permute(0, 2, 1) - self.pca[0]).matmul(self.pca[2]).div(
-                self.pca[1]).permute(0, 2, 1)
+            z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
+                self.std).permute(0, 2, 1)
         return z
 
     @torch.jit.export
     def decode(self, z):
         if self.pca is not None:
-            z = (z.permute(0, 2, 1).matmul(
-                self.pca[2].permute(1, 0) * self.pca[1]) +
-                 self.pca[0]).permute(0, 2, 1)
+            z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
+                 self.mean).permute(0, 2, 1)
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
         waveform = self.trace_melgan(mel)
