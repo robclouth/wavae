@@ -2,20 +2,21 @@ import librosa as li
 import resampy
 import lmdb
 from tqdm import tqdm
-from glob import glob
+from pathlib import Path
 from os import path
 import pickle
 import torch
 
 
-def preprocess(wavloc, samprate, outdb, n_signal):
+def preprocess(wavlocs, samprate, outdb, n_signal):
     env = lmdb.open(outdb, map_size=10e9, lock=False)
-    wavloc = wavloc if (".wav" in wavloc or ".aif" in wavloc) else [
-        path.join(wavloc, ext) for ext in ["*.wav", "*.aif"]
-    ]
+
     wavs = []
-    for wav in wavloc:
-        wavs.extend(glob(wav))
+    wavlocs = wavlocs.split(",")
+
+    for wavloc in wavlocs:
+        wavs += [str(elm.absolute()) for elm in Path(wavloc).rglob("*.wav")]
+        wavs += [str(elm.absolute()) for elm in Path(wavloc).rglob("*.aif")]
 
     wavs = tqdm(wavs)
 
