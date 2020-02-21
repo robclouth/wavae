@@ -7,9 +7,6 @@
 #include "thread"
 #include <iostream>
 
-#define BUFFER_SIZE 4096
-#define LATENT_NUMBER 16
-
 #define DAE DeepAudioEngine
 
 static t_class *encoder_tilde_class;
@@ -49,12 +46,12 @@ t_int *encoder_tilde_perform(t_int *w) {
   }
 
   // COPY INPUT BUFFER TO OBJECT
-  memcpy(x->in_buffer, (float *)w[3], BUFFER_SIZE * sizeof(float));
+  memcpy(x->in_buffer, (float *)w[3], BUFFERSIZE * sizeof(float));
 
   // COPY PREVIOUS OUTPUT BUFFER TO PD
   for (int d(0); d < LATENT_NUMBER; d++) {
-    memcpy((float *)w[d + 4], x->out_buffer + (d * BUFFER_SIZE),
-           BUFFER_SIZE * sizeof(float));
+    memcpy((float *)w[d + 4], x->out_buffer + (d * BUFFERSIZE),
+           BUFFERSIZE * sizeof(float));
   }
 
   // START NEXT COMPUTATION
@@ -86,14 +83,13 @@ void *encoder_tilde_new(t_floatarg f) {
     x->x_out[i] = outlet_new(&x->x_obj, &s_signal);
   }
 
-  x->in_buffer = new float[BUFFER_SIZE];
-  x->out_buffer = new float[LATENT_NUMBER * BUFFER_SIZE];
+  x->in_buffer = new float[BUFFERSIZE];
+  x->out_buffer = new float[LATENT_NUMBER * BUFFERSIZE];
 
   x->worker = NULL;
 
   void *hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_encoder"))();
-  // x->model->load("trace_model.ts");
   return (void *)x;
 }
 

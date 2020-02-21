@@ -19,7 +19,8 @@ config_vanilla = ".".join(path.join(ROOT, "vanilla", "config").split("/"))
 class BufferSTFT(nn.Module):
     def __init__(self, buffer_size, hop_length):
         super().__init__()
-        buffer = torch.zeros(1, 2048 + 15 * hop_length)
+        n_frame = (config.BUFFER_SIZE // config.HOP_LENGTH - 1)
+        buffer = torch.zeros(1, 2048 + n_frame * hop_length)
         self.register_buffer("buffer", buffer)
         self.buffer_size = buffer_size
 

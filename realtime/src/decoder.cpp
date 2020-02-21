@@ -7,9 +7,6 @@
 #include "thread"
 #include <iostream>
 
-#define BUFFER_SIZE 4096
-#define LATENT_NUMBER 16
-
 #define DAE DeepAudioEngine
 
 static t_class *decoder_tilde_class;
@@ -51,13 +48,13 @@ t_int *decoder_tilde_perform(t_int *w) {
 
   // COPY INPUT BUFFER TO OBJECT
   for (int d(0); d < LATENT_NUMBER; d++) {
-    memcpy(x->in_buffer + (d * BUFFER_SIZE), (float *)w[d + 3],
-           BUFFER_SIZE * sizeof(float));
+    memcpy(x->in_buffer + (d * BUFFERSIZE), (float *)w[d + 3],
+           BUFFERSIZE * sizeof(float));
   }
 
   // COPY PREVIOUS OUTPUT BUFFER TO PD
   memcpy((float *)w[LATENT_NUMBER + 3], x->out_buffer,
-         BUFFER_SIZE * sizeof(float));
+         BUFFERSIZE * sizeof(float));
 
   // START NEXT COMPUTATION
   x->worker = new std::thread(perform, x);
@@ -90,8 +87,8 @@ void *decoder_tilde_new(t_floatarg f) {
     x->x_in[i] = inlet_new(&x->x_obj, &x->x_obj.ob_pd, &s_signal, &s_signal);
   }
 
-  x->in_buffer = new float[LATENT_NUMBER * BUFFER_SIZE];
-  x->out_buffer = new float[BUFFER_SIZE];
+  x->in_buffer = new float[LATENT_NUMBER * BUFFERSIZE];
+  x->out_buffer = new float[BUFFERSIZE];
 
   x->worker = NULL;
 
