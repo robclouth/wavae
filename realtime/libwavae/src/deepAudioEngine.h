@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#define BUFFERSIZE 1024
+#define BUFFERSIZE 2048
 #define LATENT_NUMBER 16
 #define DIM_REDUCTION_FACTOR 512
 

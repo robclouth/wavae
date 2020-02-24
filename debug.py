@@ -1,22 +1,28 @@
 #%%
 import torch
 torch.set_grad_enabled(False)
-import matplotlib.pyplot as plt
-import librosa as li
+model = torch.jit.load("trace_model.ts").cuda()
+x = torch.randn(1, 1024).cuda()
 
-model = torch.jit.load("trace_model.ts")
-x = torch.from_numpy(li.load("../sample.wav", 16000)[0]).float().unsqueeze(0)
-
+#%%
 z = model.encode(x)
-print(z.shape)
+y = model.decode(z)
 
 # %%
-plt.imshow(abs(z.squeeze()), aspect="auto")
-plt.colorbar()
+import librosa as li
+from tqdm import tqdm
+x, sr = li.load("../sample.wav", 16000)
+x = torch.from_numpy(x).float().cuda()
+
+if len(x) % 1024:
+    x = x[:-(len(x) % 1024)]
+
+x = torch.split(x.reshape(1, -1), 1024, -1)
+
+y = torch.cat([model(elm) for elm in tqdm(x)], -1)
+# %%
+import sounddevice as sd
+
+sd.play(y.cpu().numpy().reshape(-1), sr)
 
 # %%
-plt.plot(z.squeeze()[0, :].T)
-
-# %%
-
-y = model(x)

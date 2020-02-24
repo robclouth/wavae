@@ -88,7 +88,7 @@ void *encoder_tilde_new(t_floatarg f) {
 
   x->worker = NULL;
 
-  void *hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
+  void *hndl = dlopen("/usr/lib/libwavae.so", RTLD_LAZY);
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_encoder"))();
   return (void *)x;
 }
