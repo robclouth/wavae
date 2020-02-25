@@ -2,28 +2,34 @@ import librosa as li
 import resampy
 import lmdb
 from tqdm import tqdm
-from glob import glob
+from pathlib import Path
 from os import path
 import pickle
 import torch
 
 
-def preprocess(wavloc, samprate, outdb, n_signal):
+def preprocess(wavlocs, samprate, outdb, n_signal):
     env = lmdb.open(outdb, map_size=10e9, lock=False)
-    wavloc = wavloc if (".wav" in wavloc or ".aif" in wavloc) else [
-        path.join(wavloc, ext) for ext in ["*.wav", "*.aif"]
-    ]
+
     wavs = []
-    for wav in wavloc:
-        wavs.extend(glob(wav))
+    wavlocs = wavlocs.split(",")
+
+    for wavloc in wavlocs:
+        wavs += [str(elm.absolute()) for elm in Path(wavloc).rglob("*.wav")]
+        wavs += [str(elm.absolute()) for elm in Path(wavloc).rglob("*.aif")]
 
     wavs = tqdm(wavs)
 
     with env.begin(write=True) as txn:
         idx = 0
+        skip = 0
         for wav in wavs:
             wavs.set_description(path.basename(wav))
-            x, sr = li.load(wav, None)
+            try:
+                x, sr = li.load(wav, None)
+            except:
+                skip += 1
+                continue
             x = resampy.resample(x, sr, samprate)
 
             N = len(x) // n_signal
@@ -37,7 +43,9 @@ def preprocess(wavloc, samprate, outdb, n_signal):
             for elm in x:
                 txn.put(f"{idx:08d}".encode("utf-8"), pickle.dumps(elm))
                 idx += 1
+        print(f"Skipped {skip} files during preprocess")
         txn.put("length".encode("utf-8"), pickle.dumps(idx))
+
 
 
 class Loader(torch.utils.data.Dataset):
