@@ -47,7 +47,6 @@ def preprocess(wavlocs, samprate, outdb, n_signal):
         txn.put("length".encode("utf-8"), pickle.dumps(idx))
 
 
-
 class Loader(torch.utils.data.Dataset):
     def __init__(self, database, cat=1):
         super().__init__()
@@ -64,9 +63,9 @@ class Loader(torch.utils.data.Dataset):
     def __getitem__(self, i):
         with self.env.begin(write=False) as txn:
             x = torch.cat([
-                pickle.loads(txn.get(
-                    f"{(i+t) % self.len:08d}".encode("utf-8")))
+                torch.from_numpy(
+                    pickle.loads(
+                        txn.get(f"{(i+t) % self.len:08d}".encode("utf-8"))))
                 for t in range(self.cat)
             ], -1)
-        x = torch.from_numpy(x).unsqueeze(0)
-        return x
+        return x.unsqueeze(0)
