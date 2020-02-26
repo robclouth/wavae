@@ -18,7 +18,8 @@ typedef struct _decoder_tilde {
   t_inlet *x_in[LATENT_NUMBER - 1];
   t_outlet *x_out;
 
-  float *in_buffer, *out_buffer;
+  int loaded;
+  float *in_buffer, *out_buffer, fadein;
 
   std::thread *worker;
 
@@ -56,6 +57,14 @@ t_int *decoder_tilde_perform(t_int *w) {
   memcpy((float *)w[LATENT_NUMBER + 3], x->out_buffer,
          BUFFERSIZE * sizeof(float));
 
+  // FADE IN
+  if (x->fadein < .99) {
+    for (int i(0); i < BUFFERSIZE; i++) {
+      ((float *)w[LATENT_NUMBER + 3])[i] *= x->fadein;
+      x->fadein = x->loaded ? x->fadein * .99999 + 0.00001 : x->fadein;
+    }
+  }
+
   // START NEXT COMPUTATION
   x->worker = new std::thread(perform, x);
   return w + 20;
@@ -92,6 +101,9 @@ void *decoder_tilde_new(t_floatarg f) {
 
   x->worker = NULL;
 
+  x->loaded = 0;
+  x->fadein = 0;
+
   void *hndl = dlopen("/usr/lib/libwavae.so", RTLD_LAZY);
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_decoder"))();
 
@@ -100,6 +112,7 @@ void *decoder_tilde_new(t_floatarg f) {
 
 void decoder_tilde_load(t_decoder_tilde *x, t_symbol *sym) {
   x->model->load(sym->s_name);
+  x->loaded = 1;
   post("decoder loaded");
 }
 
