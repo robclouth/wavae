@@ -47,21 +47,25 @@ def preprocess(wavlocs, samprate, outdb, n_signal):
         txn.put("length".encode("utf-8"), pickle.dumps(idx))
 
 
-
 class Loader(torch.utils.data.Dataset):
-    def __init__(self, database):
+    def __init__(self, database, cat=1):
         super().__init__()
         self.env = lmdb.open(database, lock=False)
         with self.env.begin(write=False) as txn:
             self.len = txn.get("length".encode("utf-8"))
             if self.len is not None:
                 self.len = pickle.loads(self.len)
+        self.cat = cat
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, i):
         with self.env.begin(write=False) as txn:
-            x = pickle.loads(txn.get(f"{i:08d}".encode("utf-8")))
-        x = torch.from_numpy(x).unsqueeze(0)
-        return x
+            x = torch.cat([
+                torch.from_numpy(
+                    pickle.loads(
+                        txn.get(f"{(i+t) % self.len:08d}".encode("utf-8"))))
+                for t in range(self.cat)
+            ], -1)
+        return x.unsqueeze(0)
