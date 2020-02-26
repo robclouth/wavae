@@ -28,38 +28,4 @@ Onced both models are trained, trace them using
 python make_wrapper.py --name AGAIN_THE_SAME_COOL_NAME
 ```
 
-If you want to create an incremental wrapper of the model, don't forget to pass the `--use-cached-padding` option. It will produce two traced scripts in `runs/COOL_NAME/*.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code
-
-**Using Python**
-
-```python
-import torch
-
-encoder = torch.jit.load("runs/cool/encoder_trace.ts")
-decoder = torch.jit.load("runs/cool/decoder_trace.ts")
-
-x = torch.randn(1,8192) # an audio signal
-
-latent = encoder(x)
-reconstruction = decoder(latent)
-```
-
-**Using C++**
-
-```c++
-#include <torch/script.h>
-#include <vector>
-
-int main(){
-    torch::jit::script::Module encoder, decoder;
-
-    encoder = torch::jit::load("runs/cool/encoder_trace.ts");
-    decoder = torch::jit::load("runs/cool/decoder_trace.ts");
-
-    std::vector<torch::jit::IValue> x;
-    x.push_back(torch::zeros({1,8192})); // an audio signal
-
-    auto latent = encoder.forward(x);
-    auto reconstructon = decoder.forward(latent);
-}
-``` 
+If you want to create an incremental wrapper of the model, don't forget to pass the `--use-cached-padding` option. It will produce two traced scripts in `runs/COOL_NAME/*.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code.
