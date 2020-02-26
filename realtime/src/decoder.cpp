@@ -111,7 +111,11 @@ void *decoder_tilde_new(t_floatarg f) {
 }
 
 void decoder_tilde_load(t_decoder_tilde *x, t_symbol *sym) {
+  x->loaded = 0;
+  x->fadein = 0;
+
   x->model->load(sym->s_name);
+
   x->loaded = 1;
   post("decoder loaded");
 }
