@@ -13,11 +13,7 @@ from os import path
 config.parse_args()
 
 # PREPARE DATA
-dataset = Loader(config.LMDB_LOC)
-if dataset.len is None:
-    preprocess(config.WAV_LOC, config.SAMPRATE, config.LMDB_LOC,
-               config.N_SIGNAL)
-dataset = Loader(config.LMDB_LOC, 1 if config.TYPE == "melgan" else 5)
+dataset = Loader(1 if config.TYPE == "melgan" else 5)
 dataloader = torch.utils.data.DataLoader(dataset,
                                          batch_size=config.BATCH,
                                          shuffle=True,
