@@ -24,7 +24,7 @@ class Loader(torch.utils.data.Dataset):
         super().__init__()
         self.dataset = SimpleDataset(config.LMDB_LOC,
                                      config.WAV_LOC.split(","), preprocess)
-        self.cat = 1
+        self.cat = cat
 
     def __len__(self):
         return len(self.dataset)
