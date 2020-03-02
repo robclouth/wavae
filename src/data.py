@@ -12,10 +12,13 @@ def preprocess(name):
         return None
 
     border = len(x) % config.N_SIGNAL
+
     if len(x) < config.N_SIGNAL:
-        x = np.pad(x, (0, config.N_SIGNAL - len(x)), "constant")
+        return None
+
     elif border:
         x = x[:-border]
+
     return x.reshape(-1, config.N_SIGNAL)
 
 
