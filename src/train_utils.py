@@ -10,6 +10,8 @@ def train_step_melgan(model, opt, data, writer, ROOT, step):
     gen, dis = model
     opt_gen, opt_dis = opt
 
+    data = data.unsqueeze(1)
+
     y = gen(data)
 
     # TRAIN DISCRIMINATOR
