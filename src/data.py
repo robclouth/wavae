@@ -6,7 +6,11 @@ import torch
 
 
 def preprocess(name):
-    x = li.load(name, config.SAMPRATE)[0]
+    try:
+        x = li.load(name, config.SAMPRATE)[0]
+    except:
+        return None
+
     border = len(x) % config.N_SIGNAL
     if len(x) < config.N_SIGNAL:
         x = np.pad(x, (0, config.N_SIGNAL - len(x)), "constant")
