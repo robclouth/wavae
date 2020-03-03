@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from effortless_config import Config
 
+import numpy as np
+
 from src import config
 from src import get_model, Discriminator, preprocess
 from src import train_step_melgan, train_step_vanilla
@@ -54,7 +56,7 @@ if config.TYPE == "vanilla":
     # PREPARE OPTIMIZER
     opt = torch.optim.Adam(model.parameters(), lr=config.LR)
 
-ROOT = path.join("runs", config.NAME, config.TYPE)
+ROOT = path.join("/slow-2/antoine/runs/wavae", config.NAME, config.TYPE)
 writer = SummaryWriter(ROOT, flush_secs=20)
 
 with open(path.join(ROOT, "config.py"), "w") as config_out:
@@ -73,6 +75,7 @@ with torch.no_grad():
             for sample, loud_ in tqdm(dataloader, desc="parsing loudness"):
                 loudness.append(loud_.reshape(-1))
             loudness = torch.cat(loudness, 0).unsqueeze(1).numpy()
+            loudness = loudness[:100000]
             print("flattening dataset loudness...")
             weights, means, stds = get_flattening_function(loudness)
             np.save(path.join(ROOT, "flatten.npy"), [weights, means, stds])
