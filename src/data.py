@@ -9,6 +9,8 @@ def preprocess(name, samprate, n_signal, extract_loudness, type, hop_length,
                ratios):
     try:
         x = li.load(name, samprate)[0]
+    except KeyboardInterrupt:
+        exit()
     except:
         return None
 
