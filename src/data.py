@@ -5,27 +5,26 @@ import numpy as np
 import torch
 
 
-def preprocess(name, samprate, n_signal, extract_loudness, type, hop_length,
-               ratios):
+def preprocess(name):
     try:
-        x = li.load(name, samprate)[0]
+        x = li.load(name, config.SAMPRATE)[0]
     except KeyboardInterrupt:
         exit()
     except:
         return None
 
-    border = len(x) % n_signal
+    border = len(x) % config.N_SIGNAL
 
-    if len(x) < n_signal:
+    if len(x) < config.N_SIGNAL:
         return None
 
     elif border:
         x = x[:-border]
 
-    x = x.reshape(-1, n_signal)
+    x = x.reshape(-1, config.N_SIGNAL)
 
-    if extract_loudness and type == "vanilla":
-        dim_reduction = hop_length * np.prod(ratios)
+    if config.EXTRACT_LOUDNESS and config.TYPE == "vanilla":
+        dim_reduction = config.HOP_LENGTH * np.prod(config.RATIOS)
         x_win = x.reshape(x.shape[0], -1, dim_reduction)
         win = np.hanning(dim_reduction)
         win /= np.mean(win)
@@ -43,13 +42,10 @@ def preprocess(name, samprate, n_signal, extract_loudness, type, hop_length,
 class Loader(torch.utils.data.Dataset):
     def __init__(self, cat, config=config):
         super().__init__()
-        self.dataset = SimpleDataset(
-            config.LMDB_LOC,
-            config.WAV_LOC.split(","),
-            lambda name: preprocess(name, config.SAMPRATE, config.N_SIGNAL,
-                                    config.EXTRACT_LOUDNESS, config.TYPE,
-                                    config.HOP_LENGTH, config.RATIOS),
-            map_size=1e11)
+        self.dataset = SimpleDataset(config.LMDB_LOC,
+                                     config.WAV_LOC.split(","),
+                                     preprocess(name),
+                                     map_size=1e11)
         self.cat = cat
 
     def __len__(self):

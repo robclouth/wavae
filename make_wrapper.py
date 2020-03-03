@@ -122,7 +122,7 @@ class Wrapper(nn.Module):
                 self.pca = None
 
             if self.pca == None:
-                compute_pca(self, hparams_vanilla, 32)
+                self.pca = compute_pca(self, hparams_vanilla, 32)
                 torch.save(self.pca, path.join(ROOT, "pca.pth"))
 
             self.register_buffer("mean", self.pca[0])
