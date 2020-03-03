@@ -1,20 +1,15 @@
 #%%
-from sklearn.mixture import GaussianMixture
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn
-seaborn.set()
+from src import config, get_model, log_loudness
+import torch
 
-x = (np.random.randn(4096) * .5 + 1), (np.random.randn(4096) * 2 - 5)
-x = np.concatenate(x, -1)
-plt.hist(x, 100)
-plt.show()
+config.override(EXTRACT_LOUDNESS=True)
+model = get_model()
 
-#%%
+# %%
+x = torch.randn(1, 8192)
+model(x, torch.from_numpy(log_loudness(x.numpy(), 512)).float())
 
-gmm = GaussianMixture(2).fit(x.reshape(-1, 1))
-print(gmm.weights_.reshape(-1))
-print(gmm.means_.reshape(-1))
-print(gmm.covariances_.reshape(-1))
+# %%
+print(log_loudness(x.numpy(), 512).shape)
 
 # %%

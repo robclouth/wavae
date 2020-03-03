@@ -4,8 +4,9 @@ from torch.utils.tensorboard import SummaryWriter
 from effortless_config import Config
 
 from src import config
-from src import get_model, Loader, Discriminator, preprocess
+from src import get_model, Discriminator, preprocess
 from src import train_step_melgan, train_step_vanilla
+from src import Loader, get_flattening_function
 
 from tqdm import tqdm
 from os import path
@@ -60,16 +61,35 @@ with open(path.join(ROOT, "config.py"), "w") as config_out:
     config_out.write("from effortless_config import Config\n")
     config_out.write(str(config))
 
+# POST LOADING PROCESSING
+with torch.no_grad():
+    if config.TYPE == "vanilla" and config.EXTRACT_LOUDNESS:
+        loudness = []
+        for sample, loud_ in tqdm(dataloader, desc="parsing loudness"):
+            loudness.append(loud_.reshape(-1))
+        loudness = torch.cat(loudness, 0).unsqueeze(1).numpy()
+        print("flattening dataset loudness...")
+        flattening_function = get_flattening_function(loudness)
+    else:
+        flattening_function = None
+
+print("Start training !")
+
 # TRAINING PROCESS
 step = 0
 for e in range(config.EPOCH):
     for batch in tqdm(dataloader):
-        batch = batch.to(device)
-
         if config.TYPE == "vanilla":
-            train_step_vanilla(model, opt, batch, writer, ROOT, step)
+            train_step_vanilla(model,
+                               opt,
+                               batch,
+                               writer,
+                               ROOT,
+                               step,
+                               device,
+                               flattening=flattening_function)
 
         elif config.TYPE == "melgan":
-            train_step_melgan(model, opt, batch, writer, ROOT, step)
+            train_step_melgan(model, opt, batch, writer, ROOT, step, device)
 
         step += 1

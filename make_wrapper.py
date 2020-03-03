@@ -108,6 +108,13 @@ class Wrapper(nn.Module):
                                             test_mel,
                                             check_trace=False)
 
+        config.override(SAMPRATE=hparams_vanilla.SAMPRATE,
+                        N_SIGNAL=hparams_vanilla.N_SIGNAL,
+                        EXTRACT_LOUDNESS=hparams_vanilla.EXTRACT_LOUDNESS,
+                        TYPE=hparams_vanilla.TYPE,
+                        HOP_LENGTH=hparams_vanilla.HOP_LENGTH,
+                        RATIOS=hparams_vanilla.RATIOS)
+
         self.pca = None
         if PCA:
             try:
@@ -142,20 +149,15 @@ class Wrapper(nn.Module):
         z = self.trace_encoder(mel)
         z = torch.split(z, self.latent_size, 1)[0]
         if self.pca is not None:
-            z = z.permute(0, 2,
-                          1).matmul(self.U).div(self.std).permute(0, 2, 1)
-            # z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
-            # self.std).permute(0, 2, 1)
+            z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
+                self.std).permute(0, 2, 1)
         return z
 
     @torch.jit.export
     def decode(self, z):
         if self.pca is not None:
-            z = z.permute(0, 2,
-                          1).matmul(self.U.permute(1, 0) * self.std).permute(
-                              0, 2, 1)
-            # z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
-            #  self.mean).permute(0, 2, 1)
+            z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
+                 self.mean).permute(0, 2, 1)
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
         waveform = self.trace_melgan(mel)

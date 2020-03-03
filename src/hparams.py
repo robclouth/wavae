@@ -27,6 +27,10 @@ class config(Config):
     KERNEL = 5
     EXTRACT_LOUDNESS = False
 
+    # CLASSIFIER
+    CLASSIFIER_CHANNELS = [16, 64, 256]
+    CLASSIFIER_LIN_SIZE = [256, 64, 2]
+
     # TRAIN PARAMETERS
     SAMPRATE = 16000
     N_SIGNAL = setting(default=2**15, vanilla=2**15, melgan=2**14)

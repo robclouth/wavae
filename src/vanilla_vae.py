@@ -39,7 +39,8 @@ class ConvDecoder(nn.Module):
     """
     Multi Layer Convolutional Variational Decoder
     """
-    def __init__(self, channels, ratios, kernel, use_cached_padding):
+    def __init__(self, channels, ratios, kernel, use_cached_padding,
+                 extract_loudness):
 
         self.channels = channels
         self.ratios = ratios
@@ -49,6 +50,9 @@ class ConvDecoder(nn.Module):
         self.channels = list(self.channels)
         self.channels[0] *= 2
         self.channels[-1] //= 2
+
+        if extract_loudness:
+            self.channels[-1] += 1
 
         self.convs = []
 
@@ -85,12 +89,13 @@ class TopVAE(nn.Module):
     """
     Top Variational Auto Encoder
     """
-    def __init__(self, channels, kernel, ratios, use_cached_padding):
+    def __init__(self, channels, kernel, ratios, use_cached_padding,
+                 extract_loudness):
         super().__init__()
         self.encoder = ConvEncoder(channels, kernel, ratios,
                                    use_cached_padding)
         self.decoder = ConvDecoder(channels, ratios, kernel,
-                                   use_cached_padding)
+                                   use_cached_padding, extract_loudness)
 
         self.channels = channels
 
@@ -120,13 +125,15 @@ class TopVAE(nn.Module):
         mean = torch.split(rec, self.channels[0], 1)[0]
         return torch.sigmoid(mean)
 
-    def forward(self, x):
+    def forward(self, x, loudness):
         z, mean_z, logvar_z = self.encode(x)
+        if loudness is not None:
+            z = torch.cat([loudness, z], 1)
         y, mean_y, logvar_y = self.decode(z)
         return y, mean_y, logvar_y, mean_z, logvar_z
 
-    def loss(self, x):
-        y, mean_y, logvar_y, mean_z, logvar_z = self.forward(x)
+    def loss(self, x, loudness):
+        y, mean_y, logvar_y, mean_z, logvar_z = self.forward(x, loudness)
 
         loss_rec = logvar_y + (x - mean_y)**2 * torch.exp(-logvar_y)
 

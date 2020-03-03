@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-from . import Generator, Discriminator, MelEncoder, TopVAE, config
+from . import Generator, Discriminator, MelEncoder, TopVAE, config, Classifier
 
 
 class Vanilla(nn.Module):
     def __init__(self, hop, ratios, input_size, channels, kernel,
-                 use_cached_padding):
+                 use_cached_padding, extract_loudness):
         super().__init__()
         self.melencoder = MelEncoder(hop=hop,
                                      input_size=input_size,
@@ -13,11 +13,15 @@ class Vanilla(nn.Module):
         self.topvae = TopVAE(channels=channels,
                              kernel=kernel,
                              ratios=ratios,
-                             use_cached_padding=use_cached_padding)
+                             use_cached_padding=use_cached_padding,
+                             extract_loudness=extract_loudness)
 
-    def forward(self, x):
+        if extract_loudness:
+            self.classifier = Classifier()
+
+    def forward(self, x, loudness=None):
         S = self.melencoder(x)
-        y, mean_y, logvar_y, mean_z, logvar_z = self.topvae(S)
+        y, mean_y, logvar_y, mean_z, logvar_z = self.topvae(S, loudness)
         return y, mean_y, logvar_y, mean_z, logvar_z
 
 
@@ -59,6 +63,7 @@ def get_model(config=config):
                        input_size=config.INPUT_SIZE,
                        channels=config.CHANNELS,
                        kernel=config.KERNEL,
-                       use_cached_padding=config.USE_CACHED_PADDING)
+                       use_cached_padding=config.USE_CACHED_PADDING,
+                       extract_loudness=config.EXTRACT_LOUDNESS)
     else:
         raise Exception(f"Model type {config.TYPE} not understood")
