@@ -97,6 +97,8 @@ def train_step_vanilla(model,
         z = torch.randn_like(mean_z) * torch.exp(logvar_z) + mean_z
         mean_loudness, logvar_loudness = model.classifier(
             z, 1 - np.exp(-step / 100000))
+        mean_loudness = torch.sigmoid(mean_loudness)
+        logvar_loudness = torch.clamp(logvar_loudness, -10, 0)
         loss_da = torch.mean(logvar_loudness + (mean_loudness - fl)**2 *
                              torch.exp(-logvar_loudness))
         loss += loss_da
