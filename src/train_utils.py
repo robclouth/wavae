@@ -95,11 +95,10 @@ def train_step_vanilla(model,
     if config.EXTRACT_LOUDNESS:
         z = torch.randn_like(mean_z) * torch.exp(logvar_z) + mean_z
         mean_loudness, logvar_loudness = model.classifier(
-            z,0)# 1 - np.exp(-step / 100000))
+            z, 0)  # 1 - np.exp(-step / 100000))
         mean_loudness = torch.sigmoid(mean_loudness).reshape(-1)
         logvar_loudness = torch.clamp(logvar_loudness, -10, 0).reshape(-1)
-        print(fl.shape)
-        print(mean_loudness.shape)
+
         loss_da = torch.mean(logvar_loudness + (mean_loudness - fl)**2 *
                              torch.exp(-logvar_loudness))
         loss += loss_da
@@ -127,10 +126,12 @@ def train_step_vanilla(model,
         writer.add_histogram("logvar_z", logvar_z.reshape(-1), step)
 
         if config.EXTRACT_LOUDNESS:
-            writer.add_histogram("mean_loudness", mean_loudness.reshape(-1), step)
-            writer.add_histogram("logvar_loudness", logvar_loudness.reshape(-1), step)
+            writer.add_histogram("mean_loudness", mean_loudness.reshape(-1),
+                                 step)
+            writer.add_histogram("logvar_loudness",
+                                 logvar_loudness.reshape(-1), step)
             writer.add_histogram("flattened_loudness", fl.reshape(-1), step)
-        
+
         ori = S.detach().cpu().numpy()
         ori = np.concatenate([o for o in ori[:4]], -1)
 
