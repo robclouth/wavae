@@ -23,7 +23,6 @@ class Classifier(nn.Module):
                 nn.Conv1d(config.CLASSIFIER_CHANNELS[i],
                           config.CLASSIFIER_CHANNELS[i + 1],
                           5,
-                          2,
                           padding=5 // 2))
             if i != len(config.CLASSIFIER_CHANNELS) - 2:
                 conv.append(nn.ReLU())
@@ -42,7 +41,11 @@ class Classifier(nn.Module):
         self.lin = nn.Sequential(*lin)
 
     def forward(self, z, lam=1):
+        bs = z.shape[0]
         z = self.gradient_reversal(z, lam)
-        z = self.conv(z).mean(-1)
-        mean, logvar = torch.split(self.lin(z), 1, 1)
+        z = self.conv(z)
+        z = z.permute(0, 2, 1).reshape(-1, config.CLASSIFIER_LIN_SIZE[0])
+        z = self.lin(z)
+        z = z.reshape(bs, -1, config.CLASSIFIER_LIN_SIZE[-1]).permute(0, 2, 1)
+        mean, logvar = torch.split(z, 1, 1)
         return mean, logvar
