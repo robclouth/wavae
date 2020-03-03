@@ -19,11 +19,26 @@ def preprocess(name):
     elif border:
         x = x[:-border]
 
-    return x.reshape(-1, config.N_SIGNAL)
+    x = x.reshape(-1, config.N_SIGNAL)
+
+    if config.EXTRACT_LOUDNESS and config.TYPE == "vanilla":
+        dim_reduction = config.HOP_LENGTH * np.prod(config.RATIOS)
+        x_win = x.reshape(x.shape[0], -1, dim_reduction)
+        win = np.hanning(dim_reduction)
+        win /= np.mean(win)
+        win = win.reshape(1, 1, -1)
+        x_win = x_win * win
+        eps = 1e-4
+        log_rms = .5 * np.log(np.clip(np.mean(x_win**2, -1), eps, 1))
+        log_rms = (np.log(eps) - 2 * log_rms) / np.log(eps)
+
+        x = zip(x, log_rms)
+
+    return x
 
 
 class Loader(torch.utils.data.Dataset):
-    def __init__(self, cat):
+    def __init__(self, cat, config=config):
         super().__init__()
         self.dataset = SimpleDataset(config.LMDB_LOC,
                                      config.WAV_LOC.split(","),

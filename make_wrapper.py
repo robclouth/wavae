@@ -119,7 +119,7 @@ class Wrapper(nn.Module):
                     raise Exception(
                         "PCA should be first computed in non cache mode")
                 print("No precomputed pca found. Computing.")
-                self.pca = compute_pca(self, hparams_vanilla.LMDB_LOC, 32)
+                self.pca = compute_pca(self, hparams_vanilla, 32)
                 torch.save(self.pca, path.join(ROOT, "pca.pth"))
             self.register_buffer("mean", self.pca[0])
             self.register_buffer("std", self.pca[1])

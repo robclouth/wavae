@@ -3,8 +3,8 @@ from . import Loader
 from tqdm import tqdm
 
 
-def compute_pca(model, lmdb_loc, batch_size):
-    loader = Loader(lmdb_loc)
+def compute_pca(model, config, batch_size):
+    loader = Loader(5, config=config)
     dataloader = torch.utils.data.DataLoader(loader,
                                              batch_size=batch_size,
                                              drop_last=False,

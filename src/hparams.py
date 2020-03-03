@@ -25,6 +25,7 @@ class config(Config):
     # AUTOENCODER
     CHANNELS = [128, 256, 256, 512, 512, 512, 128, 32]
     KERNEL = 5
+    EXTRACT_LOUDNESS = False
 
     # TRAIN PARAMETERS
     SAMPRATE = 16000
