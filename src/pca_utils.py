@@ -23,7 +23,8 @@ def compute_pca(model, config, batch_size):
 
     mean = torch.mean(z, -1, keepdim=True)
     std = 3 * torch.std(z)  # 99.7% of the range (normal law)
-    U = torch.svd(z - mean, some=False)[0]
+    # U = torch.svd(z - mean, some=False)[0]
+    U = torch.svd(z, some=False)[0]
 
     torch.save(z, "z.pth")
     torch.save(mean, "mean.pth")
