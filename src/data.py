@@ -19,6 +19,14 @@ def log_loudness(x, size, eps=1e-4):
     return log_rms.reshape(log_rms.shape[0], 1, -1)
 
 
+def gaussian_cdf(weights, means, stds):
+    cdf = lambda x: np.sum([
+        w * .5 * (1 + erf((x - m) / (s * np.sqrt(2))))
+        for w, m, s in zip(weights, means, stds)
+    ], 0)
+    return cdf
+
+
 def get_flattening_function(x, n_mixture=10):
     # FIT GMM ON DATA
     gmm = GaussianMixture(n_mixture).fit(x.reshape(-1, 1))
@@ -27,13 +35,7 @@ def get_flattening_function(x, n_mixture=10):
     means = means.reshape(-1)
     stds = np.sqrt(vars.reshape(-1))
 
-    # COMPUTE CUMULATED DENSITY FUNCTION
-    cdf = lambda x: np.sum([
-        w * .5 * (1 + erf((x - m) / (s * np.sqrt(2))))
-        for w, m, s in zip(weights, means, stds)
-    ], 0)
-
-    return cdf
+    return weights, means, stds
 
 
 def preprocess(name):
@@ -85,4 +87,4 @@ class Loader(torch.utils.data.Dataset):
             loudness = torch.cat(loudness, -1)
             return sample, loudness
         else:
-            return self.dataset[idx][0]
+            return self.dataset[idx]

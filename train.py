@@ -6,7 +6,7 @@ from effortless_config import Config
 from src import config
 from src import get_model, Discriminator, preprocess
 from src import train_step_melgan, train_step_vanilla
-from src import Loader, get_flattening_function
+from src import Loader, get_flattening_function, gaussian_cdf
 
 from tqdm import tqdm
 from os import path
@@ -64,12 +64,20 @@ with open(path.join(ROOT, "config.py"), "w") as config_out:
 # POST LOADING PROCESSING
 with torch.no_grad():
     if config.TYPE == "vanilla" and config.EXTRACT_LOUDNESS:
-        loudness = []
-        for sample, loud_ in tqdm(dataloader, desc="parsing loudness"):
-            loudness.append(loud_.reshape(-1))
-        loudness = torch.cat(loudness, 0).unsqueeze(1).numpy()
-        print("flattening dataset loudness...")
-        flattening_function = get_flattening_function(loudness)
+        try:
+            print("flatten loudness found, loading")
+            weights, means, stds = np.load(path.join(ROOT, "flatten.npy"))
+            flattening_function = gaussian_cdf(weights, means, stds)
+        except:
+            loudness = []
+            for sample, loud_ in tqdm(dataloader, desc="parsing loudness"):
+                loudness.append(loud_.reshape(-1))
+            loudness = torch.cat(loudness, 0).unsqueeze(1).numpy()
+            print("flattening dataset loudness...")
+            weights, means, stds = get_flattening_function(loudness)
+            np.save(path.join(ROOT, "flatten.npy"), [weights, means, stds])
+            flattening_function = gaussian_cdf(weights, means, stds)
+
     else:
         flattening_function = None
 
