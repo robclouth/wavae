@@ -1,11 +1,32 @@
 from udls import SimpleDataset
 import librosa as li
-from . import config
-import numpy as np
 import torch
+import torch.nn as nn
+
+import numpy as np
 from sklearn.mixture import GaussianMixture
 from scipy.special import erf
+
 from tqdm import tqdm
+
+from . import config
+
+
+class LogLoudness(nn.Module):
+    def __init__(self, size, eps):
+        super().__init__()
+        win = torch.hann_window(size) / torch.mean(torch.hann_window(size))
+        win = win.reshape(1, 1, -1)
+        self.register_buffer("win", win)
+        self.eps = eps
+        self.size = size
+
+    def forward(self, x):
+        x = torch.stack(torch.split(x, self.size, -1), 1)
+        x *= self.win
+        logrms = .5 * torch.log(torch.clamp(torch.mean(x**2, -1), self.eps, 1))
+        logrms = (np.log(self.eps) - 2 * logrms) / np.log(self.eps)
+        return logrms.unsqueeze(1)
 
 
 def log_loudness(x, size, eps=1e-4):
@@ -30,10 +51,10 @@ def gaussian_cdf(weights, means, stds):
 def get_flattening_function(x, n_mixture=10):
     # FIT GMM ON DATA
     gmm = GaussianMixture(n_mixture).fit(x.reshape(-1, 1))
-    weights, means, vars = gmm.weights_, gmm.means_, gmm.covariances_
+    weights, means, variances = gmm.weights_, gmm.means_, gmm.covariances_
     weights = weights.reshape(-1)
     means = means.reshape(-1)
-    stds = np.sqrt(vars.reshape(-1))
+    stds = np.sqrt(variances.reshape(-1))
 
     return weights, means, stds
 

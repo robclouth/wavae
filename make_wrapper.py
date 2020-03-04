@@ -1,11 +1,15 @@
-import torch
-torch.set_grad_enabled(False)
-import torch.nn as nn
-from src import TopVAE, Generator, MelEncoder, config, get_model, compute_pca
-from os import path
 import importlib
-from termcolor import colored
+from os import path
 
+import torch
+import torch.nn as nn
+
+import numpy as np
+
+from src import config
+from src import get_model, compute_pca, LogLoudness
+
+torch.set_grad_enabled(False)
 config.parse_args()
 
 NAME = config.NAME
@@ -83,21 +87,34 @@ class Wrapper(nn.Module):
         if config.USE_CACHED_PADDING:
             test_wav = torch.randn(1, config.BUFFER_SIZE)
             test_mel = torch.randn(1, config.INPUT_SIZE, 2)
-            test_z = torch.randn(1, self.latent_size, 1)
+            if hparams_vanilla.EXTRACT_LOUDNESS:
+                test_z = torch.randn(1, self.latent_size + 1, 1)
+            else:
+                test_z = torch.randn(1, self.latent_size, 1)
 
         else:
             test_wav = torch.randn(1, 8192)
             test_mel = torch.randn(1, config.INPUT_SIZE, 16)
-            test_z = torch.randn(1, self.latent_size, 16)
+            if hparams_vanilla.EXTRACT_LOUDNESS:
+                test_z = torch.randn(1, self.latent_size + 1, 16)
+            else:
+                test_z = torch.randn(1, self.latent_size, 16)
 
         melencoder = TracedMelEncoder(
             vanilla.melencoder,
             BufferSTFT(config.BUFFER_SIZE, config.HOP_LENGTH),
             config.USE_CACHED_PADDING)
 
+        logloudness = LogLoudness(
+            int(hparams_vanilla.HOP_LENGTH * np.prod(hparams_vanilla.RATIOS)),
+            1e-4)
+
         self.trace_melencoder = torch.jit.trace(melencoder,
                                                 test_wav,
                                                 check_trace=False)
+        self.trace_logloudness = torch.jit.trace(logloudness,
+                                                 test_wav,
+                                                 check_trace=False)
         self.trace_encoder = torch.jit.trace(vanilla.topvae.encoder,
                                              test_mel,
                                              check_trace=False)
@@ -116,6 +133,7 @@ class Wrapper(nn.Module):
                         RATIOS=hparams_vanilla.RATIOS)
 
         self.pca = None
+
         if PCA:
             try:
                 self.pca = torch.load(path.join(ROOT, "pca.pth"))
@@ -151,6 +169,9 @@ class Wrapper(nn.Module):
         if self.pca is not None:
             z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
                 self.std).permute(0, 2, 1)
+            if config.EXTRACT_LOUDNESS:
+                loudness = self.trace_logloudness(x)
+                z = torch.cat([loudness, z], 1)
         return z
 
     @torch.jit.export
