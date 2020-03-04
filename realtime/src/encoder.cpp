@@ -56,15 +56,15 @@ t_int *encoder_tilde_perform(t_int *w) {
 
   // START NEXT COMPUTATION
   x->worker = new std::thread(perform, x);
-  return w + 20;
+  return w + LATENT_NUMBER + 4;
 }
 
 void encoder_tilde_dsp(t_encoder_tilde *x, t_signal **sp) {
-  dsp_add(encoder_tilde_perform, 19, x, sp[0]->s_n, sp[0]->s_vec, sp[1]->s_vec,
-          sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec, sp[6]->s_vec,
-          sp[7]->s_vec, sp[8]->s_vec, sp[9]->s_vec, sp[10]->s_vec,
+  dsp_add(encoder_tilde_perform, LATENT_NUMBER + 3, x, sp[0]->s_n, sp[0]->s_vec,
+          sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
+          sp[6]->s_vec, sp[7]->s_vec, sp[8]->s_vec, sp[9]->s_vec, sp[10]->s_vec,
           sp[11]->s_vec, sp[12]->s_vec, sp[13]->s_vec, sp[14]->s_vec,
-          sp[15]->s_vec, sp[16]->s_vec);
+          sp[15]->s_vec, sp[16]->s_vec, sp[17]->s_vec);
 }
 
 void encoder_tilde_free(t_encoder_tilde *x) {
