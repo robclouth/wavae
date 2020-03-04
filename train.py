@@ -75,7 +75,7 @@ with torch.no_grad():
             for sample, loud_ in tqdm(dataloader, desc="parsing loudness"):
                 loudness.append(loud_.reshape(-1))
             loudness = torch.cat(loudness, 0).unsqueeze(1).numpy()
-            loudness = loudness[:100000]
+            loudness = loudness[:1000000]
             print("flattening dataset loudness...")
             weights, means, stds = get_flattening_function(loudness)
             np.save(path.join(ROOT, "flatten.npy"), [weights, means, stds])

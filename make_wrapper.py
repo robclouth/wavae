@@ -153,6 +153,8 @@ class Wrapper(nn.Module):
             self.register_buffer("mean", self.pca[0])
             self.register_buffer("std", self.pca[1])
             self.register_buffer("U", self.pca[2])
+            
+            self.extract_loudness = config.EXTRACT_LOUDNESS
 
     def forward(self, x):
         return self.decode(self.encode(x))
@@ -169,7 +171,7 @@ class Wrapper(nn.Module):
         if self.pca is not None:
             z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
                 self.std).permute(0, 2, 1)
-            if config.EXTRACT_LOUDNESS:
+            if self.extract_loudness:
                 loudness = self.trace_logloudness(x)
                 z = torch.cat([loudness, z], 1)
         return z
@@ -177,8 +179,14 @@ class Wrapper(nn.Module):
     @torch.jit.export
     def decode(self, z):
         if self.pca is not None:
-            z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
-                 self.mean).permute(0, 2, 1)
+            if self.extract_loudness:
+                loud, z = z[:,:1,:],z[:,1:,:]
+                z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
+                    self.mean).permute(0, 2, 1)
+                z = torch.cat([loud,z], 1)
+            else:
+                z = (z.permute(0, 2, 1).matmul(self.U.permute(1, 0) * self.std) +
+                    self.mean).permute(0, 2, 1)
         mel = torch.sigmoid(self.trace_decoder(z))
         mel = torch.split(mel, self.mel_size, 1)[0]
         waveform = self.trace_melgan(mel)

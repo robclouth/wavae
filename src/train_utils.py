@@ -95,7 +95,7 @@ def train_step_vanilla(model,
     if config.EXTRACT_LOUDNESS:
         z = torch.randn_like(mean_z) * torch.exp(logvar_z) + mean_z
         mean_loudness, logvar_loudness = model.classifier(
-            z, 0)  # 1 - np.exp(-step / 100000))
+            z, 1 - np.exp(-step / 100000))
         mean_loudness = torch.sigmoid(mean_loudness).reshape(-1)
         logvar_loudness = torch.clamp(logvar_loudness, -10, 0).reshape(-1)
 
