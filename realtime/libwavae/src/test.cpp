@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <vector>
 
+#define LATENT_NUMBER 16
+#define BUFFERSIZE 2048
+
 int main(int argc, char const *argv[]) {
 
   DeepAudioEngine *encoder = new wavae::Encoder;
@@ -19,8 +22,8 @@ int main(int argc, char const *argv[]) {
   // LOOP TEST
   for (int i(0); i < 100; i++) {
     std::cout << i << std::endl;
-    encoder->perform(inbuffer, zbuffer);
-    decoder->perform(zbuffer, outbuffer);
+    encoder->perform(inbuffer, zbuffer, BUFFERSIZE);
+    decoder->perform(zbuffer, outbuffer, BUFFERSIZE);
   }
 
   return 0;

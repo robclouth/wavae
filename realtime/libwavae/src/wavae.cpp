@@ -13,12 +13,15 @@ wavae::Encoder::Encoder() {
   at::init_num_threads();
 }
 
-void wavae::Encoder::perform(float *in_buffer, float *out_buffer) {
+void wavae::Encoder::set_latent_number(int n) { latent_number = n; }
+
+void wavae::Encoder::perform(float *in_buffer, float *out_buffer,
+                             int dsp_vec_size) {
   torch::NoGradGuard no_grad;
 
   if (model_loaded) {
 
-    auto tensor = torch::from_blob(in_buffer, {1, BUFFERSIZE});
+    auto tensor = torch::from_blob(in_buffer, {1, dsp_vec_size});
     tensor = tensor.to(DEVICE);
 
     std::vector<torch::jit::IValue> input;
@@ -31,13 +34,13 @@ void wavae::Encoder::perform(float *in_buffer, float *out_buffer) {
 
     auto out = out_tensor.contiguous().data<float>();
 
-    for (int i(0); i < LATENT_NUMBER * BUFFERSIZE; i++) {
+    for (int i(0); i < latent_number * dsp_vec_size; i++) {
       out_buffer[i] = out[i];
     }
 
   } else {
 
-    for (int i(0); i < LATENT_NUMBER * BUFFERSIZE; i++) {
+    for (int i(0); i < latent_number * dsp_vec_size; i++) {
       out_buffer[i] = 0;
     }
   }
@@ -62,15 +65,18 @@ wavae::Decoder::Decoder() {
   at::init_num_threads();
 }
 
-void wavae::Decoder::perform(float *in_buffer, float *out_buffer) {
+void wavae::Decoder::set_latent_number(int n) { latent_number = n; }
+
+void wavae::Decoder::perform(float *in_buffer, float *out_buffer,
+                             int dsp_vec_size) {
 
   torch::NoGradGuard no_grad;
 
   if (model_loaded) {
 
-    auto tensor = torch::from_blob(in_buffer, {1, LATENT_NUMBER, BUFFERSIZE});
+    auto tensor = torch::from_blob(in_buffer, {1, latent_number, dsp_vec_size});
     tensor =
-        tensor.reshape({1, LATENT_NUMBER, -1, DIM_REDUCTION_FACTOR}).mean(-1);
+        tensor.reshape({1, latent_number, -1, DIM_REDUCTION_FACTOR}).mean(-1);
     tensor = tensor.to(DEVICE);
 
     std::vector<torch::jit::IValue> input;
@@ -85,11 +91,11 @@ void wavae::Decoder::perform(float *in_buffer, float *out_buffer) {
 
     auto out = out_tensor.data<float>();
 
-    for (int i(0); i < BUFFERSIZE; i++) {
+    for (int i(0); i < dsp_vec_size; i++) {
       out_buffer[i] = out[i];
     }
   } else {
-    for (int i(0); i < BUFFERSIZE; i++) {
+    for (int i(0); i < dsp_vec_size; i++) {
       out_buffer[i] = 0;
     }
   }

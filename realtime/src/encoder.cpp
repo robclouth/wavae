@@ -15,13 +15,15 @@ typedef struct _encoder_tilde {
   t_object x_obj;
   t_sample f;
 
-  t_outlet *x_out[LATENT_NUMBER];
-
+  // OBJECT ATTRIBUTES
+  int latent_number, buffer_size;
   float *in_buffer, *out_buffer;
-
   std::thread *worker;
-
   DAE *model;
+
+  // DSP RELATED MEMORY MAPS
+  float *dsp_in_vec, **dsp_out_vec;
+  int dsp_vec_size;
 
 } t_encoder_tilde;
 
@@ -33,63 +35,79 @@ void perform(t_encoder_tilde *x) {
   int ret = pthread_setschedparam(this_thread, SCHED_FIFO, &params);
 
   // COMPUTATION
-  x->model->perform(x->in_buffer, x->out_buffer);
+  x->model->perform(x->in_buffer, x->out_buffer, x->buffer_size);
 }
 
 t_int *encoder_tilde_perform(t_int *w) {
   t_encoder_tilde *x = (t_encoder_tilde *)w[1];
-  int n = (int)w[2];
 
-  // WAIT FOR PREVIOUS PROCESS TO END
-  if (x->worker) {
-    x->worker->join();
+  if (x->dsp_vec_size != x->buffer_size) {
+    post("bad vector size");
+    for (int d(0); d < x->latent_number; d++) {
+      for (int i(0); i < x->dsp_vec_size; i++) {
+        x->dsp_out_vec[d][i] = 0;
+      }
+    }
+  } else {
+    // WAIT FOR PREVIOUS PROCESS TO END
+    if (x->worker) {
+      x->worker->join();
+    }
+
+    // COPY INPUT BUFFER TO OBJECT
+    memcpy(x->in_buffer, x->dsp_in_vec, x->dsp_vec_size * sizeof(float));
+
+    // COPY PREVIOUS OUTPUT BUFFER TO PD
+    for (int d(0); d < x->latent_number; d++) {
+      memcpy(x->dsp_out_vec[d], x->out_buffer + (d * x->dsp_vec_size),
+             x->dsp_vec_size * sizeof(float));
+    }
+
+    // START NEXT COMPUTATION
+    x->worker = new std::thread(perform, x);
   }
-
-  // COPY INPUT BUFFER TO OBJECT
-  memcpy(x->in_buffer, (float *)w[3], BUFFERSIZE * sizeof(float));
-
-  // COPY PREVIOUS OUTPUT BUFFER TO PD
-  for (int d(0); d < LATENT_NUMBER; d++) {
-    memcpy((float *)w[d + 4], x->out_buffer + (d * BUFFERSIZE),
-           BUFFERSIZE * sizeof(float));
-  }
-
-  // START NEXT COMPUTATION
-  x->worker = new std::thread(perform, x);
-  return w + LATENT_NUMBER + 4;
+  return w + 2;
 }
 
 void encoder_tilde_dsp(t_encoder_tilde *x, t_signal **sp) {
-  dsp_add(encoder_tilde_perform, LATENT_NUMBER + 3, x, sp[0]->s_n, sp[0]->s_vec,
-          sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[4]->s_vec, sp[5]->s_vec,
-          sp[6]->s_vec, sp[7]->s_vec, sp[8]->s_vec, sp[9]->s_vec, sp[10]->s_vec,
-          sp[11]->s_vec, sp[12]->s_vec, sp[13]->s_vec, sp[14]->s_vec,
-          sp[15]->s_vec, sp[16]->s_vec, sp[17]->s_vec);
+  x->dsp_in_vec = sp[0]->s_vec;
+  x->dsp_vec_size = sp[0]->s_n;
+  for (int i(0); i < x->latent_number; i++) {
+    x->dsp_out_vec[i] = sp[i + 1]->s_vec;
+  }
+  dsp_add(encoder_tilde_perform, 1, x);
 }
 
 void encoder_tilde_free(t_encoder_tilde *x) {
-  for (int i(0); i < LATENT_NUMBER; i++) {
-    outlet_free(x->x_out[i]);
-  }
   if (x->worker) {
     x->worker->join();
   }
+  delete x->in_buffer;
+  delete x->out_buffer;
+  delete x->dsp_out_vec;
 }
 
-void *encoder_tilde_new(t_floatarg f) {
+void *encoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   t_encoder_tilde *x = (t_encoder_tilde *)pd_new(encoder_tilde_class);
 
-  for (int i(0); i < LATENT_NUMBER; i++) {
-    x->x_out[i] = outlet_new(&x->x_obj, &s_signal);
+  x->latent_number = int(latent_number);
+  x->buffer_size = int(buffer_size);
+
+  for (int i(0); i < x->latent_number; i++) {
+    outlet_new(&x->x_obj, &s_signal);
   }
 
-  x->in_buffer = new float[BUFFERSIZE];
-  x->out_buffer = new float[LATENT_NUMBER * BUFFERSIZE];
+  x->in_buffer = new float[x->buffer_size];
+  x->out_buffer = new float[x->latent_number * x->buffer_size];
 
   x->worker = NULL;
 
   void *hndl = dlopen("/usr/lib/libwavae.so", RTLD_LAZY);
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_encoder"))();
+  x->model->set_latent_number(x->latent_number);
+
+  x->dsp_out_vec = new float *[x->latent_number];
+
   return (void *)x;
 }
 
@@ -102,7 +120,7 @@ extern "C" {
 void encoder_tilde_setup(void) {
   encoder_tilde_class =
       class_new(gensym("encoder~"), (t_newmethod)encoder_tilde_new, 0,
-                sizeof(t_encoder_tilde), CLASS_DEFAULT, A_DEFFLOAT, 0);
+                sizeof(t_encoder_tilde), 0, A_DEFFLOAT, A_DEFFLOAT, 0);
 
   class_addmethod(encoder_tilde_class, (t_method)encoder_tilde_dsp,
                   gensym("dsp"), A_CANT, 0);
