@@ -95,8 +95,8 @@ void decoder_tilde_free(t_decoder_tilde *x) {
 void *decoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   t_decoder_tilde *x = (t_decoder_tilde *)pd_new(decoder_tilde_class);
 
-  x->latent_number = int(latent_number);
-  x->buffer_size = int(buffer_size);
+  x->latent_number = int(latent_number) == 0 ? 16 : int(latent_number);
+  x->buffer_size = int(buffer_size) == 0 ? 512 : int(latent_number);
 
   outlet_new(&x->x_obj, &s_signal);
   for (int i(1); i < x->latent_number; i++) {
