@@ -41,7 +41,10 @@ void perform(t_decoder_tilde *x) {
 t_int *decoder_tilde_perform(t_int *w) {
   t_decoder_tilde *x = (t_decoder_tilde *)w[1];
   if (x->dsp_vec_size != x->buffer_size) {
-    post("bad vector size");
+    char error[80];
+    sprintf(error, "decoder: expecting buffer %d, got %d", x->buffer_size,
+            x->dsp_vec_size);
+    post(error);
     for (int i(0); i < x->dsp_vec_size; i++) {
       x->dsp_out_vec[i] = 0;
     }
@@ -96,7 +99,7 @@ void *decoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   t_decoder_tilde *x = (t_decoder_tilde *)pd_new(decoder_tilde_class);
 
   x->latent_number = int(latent_number) == 0 ? 16 : int(latent_number);
-  x->buffer_size = int(buffer_size) == 0 ? 512 : int(latent_number);
+  x->buffer_size = int(buffer_size) == 0 ? 512 : int(buffer_size);
 
   outlet_new(&x->x_obj, &s_signal);
   for (int i(1); i < x->latent_number; i++) {
@@ -112,6 +115,11 @@ void *decoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   x->fadein = 0;
 
   void *hndl = dlopen("/usr/lib/libwavae.so", RTLD_LAZY);
+  if (!hndl) {
+    hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
+    post("Using local version of libwavae");
+  }
+
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_decoder"))();
   x->model->set_latent_number(x->latent_number);
 

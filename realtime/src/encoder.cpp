@@ -6,6 +6,7 @@
 #include "sched.h"
 #include "thread"
 #include <iostream>
+#include <stdio.h>
 
 #define DAE DeepAudioEngine
 
@@ -42,7 +43,10 @@ t_int *encoder_tilde_perform(t_int *w) {
   t_encoder_tilde *x = (t_encoder_tilde *)w[1];
 
   if (x->dsp_vec_size != x->buffer_size) {
-    post("bad vector size");
+    char error[80];
+    sprintf(error, "encoder: expecting buffer %d, got %d", x->buffer_size,
+            x->dsp_vec_size);
+    post(error);
     for (int d(0); d < x->latent_number; d++) {
       for (int i(0); i < x->dsp_vec_size; i++) {
         x->dsp_out_vec[d][i] = 0;
@@ -91,7 +95,7 @@ void *encoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   t_encoder_tilde *x = (t_encoder_tilde *)pd_new(encoder_tilde_class);
 
   x->latent_number = int(latent_number) == 0 ? 16 : int(latent_number);
-  x->buffer_size = int(buffer_size) == 0 ? 512 : int(latent_number);
+  x->buffer_size = int(buffer_size) == 0 ? 512 : int(buffer_size);
 
   for (int i(0); i < x->latent_number; i++) {
     outlet_new(&x->x_obj, &s_signal);
@@ -103,6 +107,11 @@ void *encoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
   x->worker = NULL;
 
   void *hndl = dlopen("/usr/lib/libwavae.so", RTLD_LAZY);
+  if (!hndl) {
+    hndl = dlopen("./libwavae/libwavae.so", RTLD_LAZY);
+    post("Using local version of libwavae");
+  }
+
   x->model = reinterpret_cast<DAE *(*)()>(dlsym(hndl, "get_encoder"))();
   x->model->set_latent_number(x->latent_number);
 
