@@ -133,7 +133,8 @@ class Wrapper(nn.Module):
                         EXTRACT_LOUDNESS=hparams_vanilla.EXTRACT_LOUDNESS,
                         TYPE=hparams_vanilla.TYPE,
                         HOP_LENGTH=hparams_vanilla.HOP_LENGTH,
-                        RATIOS=hparams_vanilla.RATIOS)
+                        RATIOS=hparams_vanilla.RATIOS,
+                        WAV_LOC=hparams_vanilla.WAV_LOC)
 
         self.pca = None
 
@@ -150,7 +151,7 @@ class Wrapper(nn.Module):
                 self.pca = None
 
             if self.pca == None:
-                self.pca = compute_pca(self, hparams_vanilla, 32)
+                self.pca = compute_pca(self, 32)
                 torch.save(self.pca, path.join(ROOT, "pca.pth"))
 
             self.register_buffer("mean", self.pca[0])
@@ -199,5 +200,5 @@ class Wrapper(nn.Module):
 
 
 if __name__ == "__main__":
-    wrapper = Wrapper()
+    wrapper = Wrapper().cpu()
     torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))

@@ -66,7 +66,6 @@ def preprocess(name):
         exit()
     except:
         return None
-
     border = len(x) % config.N_SIGNAL
 
     if len(x) < config.N_SIGNAL:
@@ -88,8 +87,8 @@ class Loader(torch.utils.data.Dataset):
     def __init__(self, cat, config=config):
         super().__init__()
         self.dataset = SimpleDataset(config.LMDB_LOC,
-                                     config.WAV_LOC.split(","),
-                                     preprocess,
+                                     folder_list=config.WAV_LOC.split(","),
+                                     preprocess_function=preprocess,
                                      map_size=1e11)
         self.cat = cat
 

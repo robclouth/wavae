@@ -1,10 +1,11 @@
 import torch
-from . import Loader
+from . import Loader, config
 from tqdm import tqdm
 
 
-def compute_pca(model, config, batch_size):
-    loader = Loader(5, config=config)
+def compute_pca(model, batch_size):
+    print(config)
+    loader = Loader(5)
     dataloader = torch.utils.data.DataLoader(loader,
                                              batch_size=batch_size,
                                              drop_last=False,
