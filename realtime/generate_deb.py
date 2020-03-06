@@ -1,18 +1,19 @@
 from os import system, makedirs
 
 VERSION = input("Version: ")
+PACKAGE = f"wavae_{VERSION}"
 
-makedirs(f"wavae_{VERSION}/usr/lib/")
-makedirs(f"wavae_{VERSION}/usr/local/lib/pd-externals/wavae/")
-makedirs(f"wavae_{VERSION}/DEBIAN/")
+makedirs(f"{PACKAGE}/usr/lib/")
+makedirs(f"{PACKAGE}/usr/local/lib/pd-externals/wavae/")
+makedirs(f"{PACKAGE}/DEBIAN/")
 
-system(
-    f"cp build/*.pd_linux wavae_{VERSION}/usr/local/lib/pd-externals/wavae/")
-system(f"cp help* wavae_{VERSION}/usr/local/lib/pd-externals/wavae/")
+system(f"cp build/*.pd_linux {PACKAGE}/usr/local/lib/pd-externals/wavae/")
+system(f"cp helppatch.pd {PACKAGE}/usr/local/lib/pd-externals/wavae/help-encoder~.pd")
+system(f"cp helppatch.pd {PACKAGE}/usr/local/lib/pd-externals/wavae/help-decoder~.pd")
 
-system(f"cp build/libwavae/libwavae.so wavae_{VERSION}/usr/lib/")
+system(f"cp build/libwavae/libwavae.so {PACKAGE}/usr/lib/")
 
-with open(f"wavae_{VERSION}/DEBIAN/control", "w") as control:
+with open(f"{PACKAGE}/DEBIAN/control", "w") as control:
     control.write("Package: wavae\n")
     control.write(f"Version: {VERSION}\n")
     control.write("Maintainer: Antoine CAILLON <caillon@ircam.fr>\n")
@@ -20,5 +21,5 @@ with open(f"wavae_{VERSION}/DEBIAN/control", "w") as control:
     control.write(
         "Description: WaVAE puredata external. Needs libtorch in /usr/lib\n")
 
-system(f"dpkg-deb --build wavae_{VERSION}")
-system(f"rm -fr wavae_{VERSION}/")
+system(f"dpkg-deb --build {PACKAGE}")
+system(f"rm -fr {PACKAGE}/")
