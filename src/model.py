@@ -9,7 +9,7 @@ class Vanilla(nn.Module):
         super().__init__()
         self.melencoder = MelEncoder(hop=hop,
                                      input_size=input_size,
-                                     center=not use_cached_padding)
+                                     center=False)
         self.topvae = TopVAE(channels=channels,
                              kernel=kernel,
                              ratios=ratios,

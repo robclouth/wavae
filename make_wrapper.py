@@ -35,15 +35,18 @@ class BufferSTFT(nn.Module):
 
 
 class TracedMelEncoder(nn.Module):
-    def __init__(self, melencoder, buffer, use_buffer=True):
+    def __init__(self, melencoder, buffer, hop_length, use_buffer=True):
         super().__init__()
         self.melencoder = melencoder
         self.buffer = torch.jit.script(buffer)
         self.use_buffer = use_buffer
+        self.hop_length = hop_length
 
     def forward(self, x):
         if self.use_buffer:
             x = self.buffer(x)
+        else:
+            x = nn.functional.pad(x, (0, 2048 - self.hop_length))
         return self.melencoder(x)
 
 
@@ -103,7 +106,7 @@ class Wrapper(nn.Module):
         melencoder = TracedMelEncoder(
             vanilla.melencoder,
             BufferSTFT(config.BUFFER_SIZE, config.HOP_LENGTH),
-            config.USE_CACHED_PADDING)
+            config.HOP_LENGTH, config.USE_CACHED_PADDING)
 
         logloudness = LogLoudness(
             int(hparams_vanilla.HOP_LENGTH * np.prod(hparams_vanilla.RATIOS)),
