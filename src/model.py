@@ -33,7 +33,7 @@ class melGAN(nn.Module):
         self.encoder = MelEncoder(sampling_rate=sampling_rate,
                                   hop=hop,
                                   input_size=input_size,
-                                  center=not use_cached_padding)
+                                  center=False)
         self.decoder = Generator(input_size=input_size,
                                  ngf=ngf,
                                  n_residual_layers=n_res_g,
