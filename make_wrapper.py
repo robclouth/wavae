@@ -45,8 +45,6 @@ class TracedMelEncoder(nn.Module):
     def forward(self, x):
         if self.use_buffer:
             x = self.buffer(x)
-        else:
-            x = nn.functional.pad(x, (0, 2048 - self.hop_length))
         return self.melencoder(x)
 
 

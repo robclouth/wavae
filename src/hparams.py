@@ -32,7 +32,7 @@ class config(Config):
     CLASSIFIER_LIN_SIZE = [256, 64, 2]
 
     # TRAIN PARAMETERS
-    PATH_PREPEND = ""
+    PATH_PREPEND = "./runs/"
     SAMPRATE = 16000
     N_SIGNAL = setting(default=2**15, vanilla=2**15, melgan=2**14)
     EPOCH = 1000

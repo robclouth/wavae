@@ -1,0 +1,32 @@
+from effortless_config import Config
+class config(Config):
+    groups = ['vanilla', 'melgan']
+    TYPE = 'vanilla'
+    INPUT_SIZE = 128
+    NGF = 32
+    N_RES_G = 3
+    HOP_LENGTH = 256
+    RATIOS = [1, 1, 1, 2, 1, 1, 1]
+    NUM_D = 3
+    NDF = 16
+    N_LAYER_D = 4
+    DOWNSAMP_D = 4
+    CHANNELS = [128, 256, 256, 512, 512, 512, 128, 32]
+    KERNEL = 5
+    EXTRACT_LOUDNESS = True
+    CLASSIFIER_CHANNELS = [16, 64, 256]
+    CLASSIFIER_LIN_SIZE = [256, 64, 2]
+    PATH_PREPEND = ''
+    SAMPRATE = 16000
+    N_SIGNAL = 32768
+    EPOCH = 1000
+    BATCH = 1
+    LR = 0.0001
+    NAME = 'test'
+    CKPT = None
+    WAV_LOC = '../vae-rnn/test wav/'
+    LMDB_LOC = 'test_a_la-con'
+    BACKUP = 10000
+    EVAL = 1000
+    USE_CACHED_PADDING = False
+    BUFFER_SIZE = 1024
