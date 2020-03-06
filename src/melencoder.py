@@ -7,12 +7,12 @@ module = lambda x: torch.sqrt(x[..., 0]**2 + x[..., 1]**2)
 
 
 class MelEncoder(nn.Module):
-    def __init__(self, hop, input_size, center=False):
+    def __init__(self, sampling_rate, hop, input_size, center=False):
         super().__init__()
         self.hop = hop
         self.nfft = 2048
 
-        mel = li.filters.mel(16000, self.nfft, input_size, fmin=80)
+        mel = li.filters.mel(sampling_rate, self.nfft, input_size, fmin=80)
         mel = torch.from_numpy(mel)
 
         self.register_buffer("mel", mel)

@@ -4,10 +4,11 @@ from . import Generator, Discriminator, MelEncoder, TopVAE, config, Classifier
 
 
 class Vanilla(nn.Module):
-    def __init__(self, hop, ratios, input_size, channels, kernel,
-                 use_cached_padding, extract_loudness):
+    def __init__(self, sampling_rate, hop, ratios, input_size, channels,
+                 kernel, use_cached_padding, extract_loudness):
         super().__init__()
-        self.melencoder = MelEncoder(hop=hop,
+        self.melencoder = MelEncoder(sampling_rate=sampling_rate,
+                                     hop=hop,
                                      input_size=input_size,
                                      center=False)
         self.topvae = TopVAE(channels=channels,
@@ -26,10 +27,11 @@ class Vanilla(nn.Module):
 
 
 class melGAN(nn.Module):
-    def __init__(self, hop, ratios, input_size, ngf, n_res_g,
+    def __init__(self, sampling_rate, hop, ratios, input_size, ngf, n_res_g,
                  use_cached_padding):
         super().__init__()
-        self.encoder = MelEncoder(hop=hop,
+        self.encoder = MelEncoder(sampling_rate=sampling_rate,
+                                  hop=hop,
                                   input_size=input_size,
                                   center=not use_cached_padding)
         self.decoder = Generator(input_size=input_size,
@@ -50,7 +52,8 @@ class melGAN(nn.Module):
 
 def get_model(config=config):
     if config.TYPE == "melgan":
-        return melGAN(hop=config.HOP_LENGTH,
+        return melGAN(sampling_rate=config.SAMPRATE,
+                      hop=config.HOP_LENGTH,
                       ratios=config.RATIOS,
                       input_size=config.INPUT_SIZE,
                       ngf=config.NGF,
@@ -58,7 +61,8 @@ def get_model(config=config):
                       use_cached_padding=config.USE_CACHED_PADDING)
 
     elif config.TYPE == "vanilla":
-        return Vanilla(hop=config.HOP_LENGTH,
+        return Vanilla(sampling_rate=config.SAMPRATE,
+                       hop=config.HOP_LENGTH,
                        ratios=config.RATIOS,
                        input_size=config.INPUT_SIZE,
                        channels=config.CHANNELS,
