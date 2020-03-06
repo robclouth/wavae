@@ -56,7 +56,7 @@ if config.TYPE == "vanilla":
     # PREPARE OPTIMIZER
     opt = torch.optim.Adam(model.parameters(), lr=config.LR)
 
-ROOT = path.join("/slow-2/antoine/runs/wavae", config.NAME, config.TYPE)
+ROOT = path.join(config.PATH_PREPEND, config.NAME, config.TYPE)
 writer = SummaryWriter(ROOT, flush_secs=20)
 
 with open(path.join(ROOT, "config.py"), "w") as config_out:
