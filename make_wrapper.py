@@ -134,7 +134,8 @@ class Wrapper(nn.Module):
                         TYPE=hparams_vanilla.TYPE,
                         HOP_LENGTH=hparams_vanilla.HOP_LENGTH,
                         RATIOS=hparams_vanilla.RATIOS,
-                        WAV_LOC=hparams_vanilla.WAV_LOC)
+                        WAV_LOC=hparams_vanilla.WAV_LOC,
+                        LMDB_LOC=hparams_vanilla.LMDB_LOC)
 
         self.pca = None
 
