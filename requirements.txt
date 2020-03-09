@@ -8,3 +8,4 @@ effortless_config>=0.6.1
 tqdm>=4.36.1
 scikit_learn>=0.22.2.post1
 tensorflow>=2.1.0
+image>=1.5.28
