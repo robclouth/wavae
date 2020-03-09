@@ -22,4 +22,5 @@ with open(f"{PACKAGE}/DEBIAN/control", "w") as control:
         "Description: WaVAE puredata external. Needs libtorch in /usr/lib\n")
 
 system(f"dpkg-deb --build {PACKAGE}")
-system(f"rm -fr {PACKAGE}/")
+if not input("Enter any key to prevent temporary folder destruction: "):
+    system(f"rm -fr {PACKAGE}/")
