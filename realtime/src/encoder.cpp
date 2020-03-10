@@ -89,6 +89,7 @@ void encoder_tilde_free(t_encoder_tilde *x) {
   delete x->in_buffer;
   delete x->out_buffer;
   delete x->dsp_out_vec;
+  delete x->model;
 }
 
 void *encoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
@@ -121,8 +122,13 @@ void *encoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
 }
 
 void encoder_tilde_load(t_encoder_tilde *x, t_symbol *sym) {
-  x->model->load(sym->s_name);
-  post("encoder loaded");
+  int statut = x->model->load(sym->s_name);
+
+  if (statut == 0) {
+    post("encoder loaded");
+  } else {
+    post("encoder failed loading model");
+  }
 }
 
 extern "C" {

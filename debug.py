@@ -1,15 +1,7 @@
-#%%
-from src import config, get_model, log_loudness
 import torch
 
-config.override(EXTRACT_LOUDNESS=True)
-model = get_model()
+model = torch.jit.load("runs/untitled/trace_model.ts")
 
-# %%
-x = torch.randn(1, 8192)
-model(x, torch.from_numpy(log_loudness(x.numpy(), 512)).float())
+x = torch.randn(1, 2048)
 
-# %%
-print(log_loudness(x.numpy(), 512).shape)
-
-# %%
+model.encode(x)
