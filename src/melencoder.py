@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import librosa as li
 import numpy as np
+from . import config
 
 module = lambda x: torch.sqrt(x[..., 0]**2 + x[..., 1]**2)
 
@@ -22,7 +23,8 @@ class MelEncoder(nn.Module):
         if len(x.shape) == 3:
             x = x.squeeze(1)
 
-        x = nn.functional.pad(x, (0, self.nfft - self.hop))
+        if not config.USE_CACHED_PADDING:
+            x = nn.functional.pad(x, (0, self.nfft - self.hop))
 
         S = torch.stft(x, self.nfft, self.hop, 512, center=self.center)
         S = 2 * module(S) / 512
