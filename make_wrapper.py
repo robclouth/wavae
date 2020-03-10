@@ -204,7 +204,7 @@ if __name__ == "__main__":
     name_list = [
         config.NAME,
         str(int(np.floor(config.SAMPRATE / 1000))) + "kHz",
-        str(config.CHANNELS[-1] // 2) + "z"
+        str(config.CHANNELS[-1] // 2 + int(config.EXTRACT_LOUDNESS)) + "z"
     ]
     if config.USE_CACHED_PADDING:
         name_list.append(str(config.BUFFER_SIZE) + "b")
