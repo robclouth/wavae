@@ -200,4 +200,14 @@ class Wrapper(nn.Module):
 
 if __name__ == "__main__":
     wrapper = Wrapper().cpu()
-    torch.jit.script(wrapper).save(path.join(ROOT, "trace_model.ts"))
+
+    name_list = [
+        config.NAME,
+        str(int(np.floor(config.SAMPRATE / 1000))) + "kHz",
+        str(config.CHANNELS[-1] // 2) + "z"
+    ]
+    if config.USE_CACHED_PADDING:
+        name_list.append(str(config.BUFFER_SIZE) + "b")
+
+    name = "_".join(name_list) + ".ts"
+    torch.jit.script(wrapper).save(path.join(ROOT, name))
