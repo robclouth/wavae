@@ -28,15 +28,16 @@ Onced both models are trained, trace them using
 python make_wrapper.py --name AGAIN_THE_SAME_COOL_NAME
 ```
 
-If you want to create an incremental wrapper of the model, don't forget to pass the `--use-cached-padding` option. It will produce two traced scripts in `runs/COOL_NAME/*.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code.
+If you want to create an incremental wrapper of the model, don't forget to pass the `--use-cached-padding true` option. It will produce a traced script in `runs/COOL_NAME/COOLNAME_LOTSOFWEIRDNUMBERS.ts`. Those scripts can be deployed, used in a libtorch C++ environement, inside a Max/MSP playground that won't be named here, without having to use the source code.
 
-
-## Compiling
+## Compiling
 
 
 To compile the pd externals, you can use CMAKE
 ```bash
 cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug] -G [Ninja / Xcode / Makefile]  ../
 ```
+
+Or even better, use the precompiled binaries available in the **Release** section of this project.
 
 (only tested on ubuntu 18.04 - 19.10)
