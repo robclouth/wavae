@@ -26,6 +26,7 @@ class config(Config):
     CHANNELS = [128, 256, 256, 512, 512, 512, 128, 32]
     KERNEL = 5
     EXTRACT_LOUDNESS = True
+    AUGMENT = setting(default=5, vanilla=5, melgan=1)
 
     # CLASSIFIER
     CLASSIFIER_CHANNELS = [16, 64, 256]
