@@ -170,7 +170,10 @@ class Wrapper(nn.Module):
     def encode(self, x):
         mel = self.melencode(x)
         z = self.trace_encoder(mel)
-        z = torch.split(z, self.latent_size, 1)[0]
+
+        mean, logvar = torch.split(z, self.latent_size, 1)
+        z = torch.randn_like(mean) * torch.exp(logvar) + mean
+
         if self.pca is not None:
             z = (z.permute(0, 2, 1) - self.mean).matmul(self.U).div(
                 self.std).permute(0, 2, 1)
