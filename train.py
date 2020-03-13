@@ -16,7 +16,7 @@ from os import path
 config.parse_args()
 
 # PREPARE DATA
-dataset = Loader(1 if config.TYPE == "melgan" else 5)
+dataset = Loader(config.AUGMENT)
 dataloader = torch.utils.data.DataLoader(dataset,
                                          batch_size=config.BATCH,
                                          shuffle=True,
