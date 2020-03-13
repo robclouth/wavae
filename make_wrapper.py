@@ -13,7 +13,7 @@ torch.set_grad_enabled(False)
 config.parse_args()
 
 NAME = config.NAME
-ROOT = path.join(config.PATH_PREPEND, config.NAME)
+ROOT = path.join("runs/" config.NAME)
 PCA = True
 
 config_melgan = ".".join(path.join(ROOT, "melgan", "config").split("/"))
