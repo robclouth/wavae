@@ -16,7 +16,7 @@ typedef struct _decoder_tilde {
   t_sample f;
 
   // OBJECT ATTRIBUTES
-  int loaded, latent_number, buffer_size;
+  int loaded, latent_number, buffer_size, activated;
   float *in_buffer, *out_buffer, fadein;
   std::thread *worker;
   DAE *model;
@@ -45,6 +45,10 @@ t_int *decoder_tilde_perform(t_int *w) {
     sprintf(error, "decoder: expecting buffer %d, got %d", x->buffer_size,
             x->dsp_vec_size);
     post(error);
+    for (int i(0); i < x->dsp_vec_size; i++) {
+      x->dsp_out_vec[i] = 0;
+    }
+  } else if (x->activated == 0) {
     for (int i(0); i < x->dsp_vec_size; i++) {
       x->dsp_out_vec[i] = 0;
     }
@@ -101,6 +105,7 @@ void *decoder_tilde_new(t_floatarg latent_number, t_floatarg buffer_size) {
 
   x->latent_number = int(latent_number) == 0 ? 16 : int(latent_number);
   x->buffer_size = int(buffer_size) == 0 ? 512 : int(buffer_size);
+  x->activated = 1;
 
   outlet_new(&x->x_obj, &s_signal);
   for (int i(1); i < x->latent_number; i++) {
@@ -143,6 +148,10 @@ void decoder_tilde_load(t_decoder_tilde *x, t_symbol *sym) {
   }
 }
 
+void decoder_tilde_activate(t_decoder_tilde *x, t_floatarg arg) {
+  x->activated = int(arg);
+}
+
 extern "C" {
 void decoder_tilde_setup(void) {
   decoder_tilde_class =
@@ -153,6 +162,8 @@ void decoder_tilde_setup(void) {
                   gensym("dsp"), A_CANT, 0);
   class_addmethod(decoder_tilde_class, (t_method)decoder_tilde_load,
                   gensym("load"), A_SYMBOL, A_NULL);
+  class_addmethod(decoder_tilde_class, (t_method)decoder_tilde_activate,
+                  gensym("activate"), A_DEFFLOAT, A_NULL);
 
   CLASS_MAINSIGNALIN(decoder_tilde_class, t_decoder_tilde, f);
 }
