@@ -19,13 +19,14 @@ class LogLoudness(nn.Module):
         win = win.reshape(1, 1, -1)
         self.register_buffer("win", win)
         self.eps = eps
+        self.logeps = np.log(self.eps)
         self.size = size
 
     def forward(self, x):
         x = torch.stack(torch.split(x, self.size, -1), 1)
         x *= self.win
         logrms = .5 * torch.log(torch.clamp(torch.mean(x**2, -1), self.eps, 1))
-        logrms = (np.log(self.eps) - 2 * logrms) / np.log(self.eps)
+        logrms = (self.logeps - 2 * logrms) / self.logeps
         return logrms.unsqueeze(1)
 
 
