@@ -110,12 +110,10 @@ class Wrapper(nn.Module):
             int(hparams_vanilla.HOP_LENGTH * np.prod(hparams_vanilla.RATIOS)),
             1e-4)
 
+        self.trace_logloudness = torch.jit.script(logloudness)
         self.trace_melencoder = torch.jit.trace(melencoder,
                                                 test_wav,
                                                 check_trace=False)
-        self.trace_logloudness = torch.jit.trace(logloudness,
-                                                 test_wav,
-                                                 check_trace=False)
         self.trace_encoder = torch.jit.trace(vanilla.topvae.encoder,
                                              test_mel,
                                              check_trace=False)
