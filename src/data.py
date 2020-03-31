@@ -87,8 +87,13 @@ def preprocess(name):
 class Loader(torch.utils.data.Dataset):
     def __init__(self, cat, config=config):
         super().__init__()
+        if config.WAV_LOC is not None:
+            wav_loc = config.WAV_LOC.split(",")
+        else:
+            wav_loc = None
         self.dataset = SimpleDataset(config.LMDB_LOC,
-                                     folder_list=config.WAV_LOC.split(","),
+                                     folder_list=None,
+                                     file_list=config.FILE_LIST,
                                      preprocess_function=preprocess,
                                      map_size=1e11)
         self.cat = cat

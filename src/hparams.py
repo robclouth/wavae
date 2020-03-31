@@ -42,7 +42,8 @@ class config(Config):
     NAME = "untitled"
     CKPT = None
 
-    WAV_LOC = "/Users/caillon/dev/vae-rnn/test wav/demo alexander/hivae"
+    WAV_LOC = None
+    FILE_LIST = None
     LMDB_LOC = "./preprocessed"
 
     BACKUP = 10000
