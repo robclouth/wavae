@@ -92,7 +92,7 @@ class Loader(torch.utils.data.Dataset):
         else:
             wav_loc = None
         self.dataset = SimpleDataset(config.LMDB_LOC,
-                                     folder_list=None,
+                                     folder_list=config.WAV_LOC,
                                      file_list=config.FILE_LIST,
                                      preprocess_function=preprocess,
                                      map_size=1e11)
