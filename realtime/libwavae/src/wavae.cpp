@@ -32,7 +32,7 @@ void wavae::Encoder::perform(float *in_buffer, float *out_buffer,
     out_tensor = out_tensor.repeat_interleave(DIM_REDUCTION_FACTOR);
     out_tensor = out_tensor.to(CPU);
 
-    auto out = out_tensor.contiguous().data<float>();
+    auto out = out_tensor.contiguous().data_ptr<float>();
 
     for (int i(0); i < latent_number * dsp_vec_size; i++) {
       out_buffer[i] = out[i];
@@ -89,7 +89,7 @@ void wavae::Decoder::perform(float *in_buffer, float *out_buffer,
 
     out_tensor = out_tensor.to(CPU);
 
-    auto out = out_tensor.data<float>();
+    auto out = out_tensor.data_ptr<float>();
 
     for (int i(0); i < dsp_vec_size; i++) {
       out_buffer[i] = out[i];
