@@ -40,7 +40,7 @@ It will produce a traced script in `runs/COOL_NAME/COOLNAME_LOTSOFWEIRDNUMBERS.t
 
 To compile the pd externals, you can use CMAKE
 ```bash
-cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug] -G [Ninja / Xcode / Makefile]  ../
+cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug] -DCUDNN_LIBRARY_PATH=path.to.libcudnn.so -DCUDNN_INCLUDE_PATH=path.to.cudnn.include -G [Ninja / Xcode / Makefile]  ../
 ```
 
 Or even better, use the precompiled binaries available in the **Release** section of this project.
