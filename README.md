@@ -6,6 +6,11 @@ Despite its name, its not a waveform based VAE, but a melspec one with a melGAN 
 
 This model has realtime generation (on CPU, even if it can burn it lol, so you'd better stick to GPU) and a highly-compressed and expressive latent representation.
 
+## PureData usage demo
+
+[![Celine to Scream](https://img.youtube.com/vi/Q3Ejm_ll6KU/0.jpg)](https://www.youtube.com/watch?v=Q3Ejm_ll6KU)
+
+
 ## Usage
 
 Train the spectral model
@@ -35,7 +40,7 @@ It will produce a traced script in `runs/COOL_NAME/COOLNAME_LOTSOFWEIRDNUMBERS.t
 
 To compile the pd externals, you can use CMAKE
 ```bash
-cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug] -G [Ninja / Xcode / Makefile]  ../
+cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug] -DCUDNN_LIBRARY_PATH=path.to.libcudnn.so -DCUDNN_INCLUDE_PATH=path.to.cudnn.include -G [Ninja / Xcode / Makefile]  ../
 ```
 
 Or even better, use the precompiled binaries available in the **Release** section of this project.
