@@ -6,6 +6,11 @@ Despite its name, its not a waveform based VAE, but a melspec one with a melGAN 
 
 This model has realtime generation (on CPU, even if it can burn it lol, so you'd better stick to GPU) and a highly-compressed and expressive latent representation.
 
+## PureData usage demo
+
+[![Celine to Scream](https://img.youtube.com/vi/Q3Ejm_ll6KU/0.jpg)](https://www.youtube.com/watch?v=Q3Ejm_ll6KU)
+
+
 ## Usage
 
 Train the spectral model
