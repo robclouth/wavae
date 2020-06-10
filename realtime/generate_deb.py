@@ -17,6 +17,7 @@ with open(f"{PACKAGE}/DEBIAN/control", "w") as control:
     control.write("Package: wavae\n")
     control.write(f"Version: {VERSION}\n")
     control.write("Maintainer: Antoine CAILLON <caillon@ircam.fr>\n")
+    control.write("Depends: nvidia-cuda-toolkit\n")
     control.write("Architecture: all\n")
     control.write(
         "Description: WaVAE puredata external. Needs libtorch in /usr/lib\n")
