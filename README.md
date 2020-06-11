@@ -44,5 +44,6 @@ cmake -DCMAKE_PREFIX_PATH=/path.to.libtorch -DCMAKE_BUILD_TYPE=[Release / Debug]
 ```
 
 Or even better, use the precompiled binaries available in the **Release** section of this project.
+Just remember to download the CUDA 10.1 cxx11 ABI version of libtorch and unzip it in `/usr/lib/`
 
 (only tested on ubuntu 18.04 - 19.10 - 20.04)
